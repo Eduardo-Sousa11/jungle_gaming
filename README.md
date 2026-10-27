@@ -1,24 +1,24 @@
-# Jungle Gaming — Distributed Wagering Processor
+# Jungle Gaming — Processador Distribuído de Apostas
 
-Backend for the Jungle Gaming technical challenge. The project is being delivered in small, validated stages; the current version contains the application foundation, infrastructure, initial financial schema and exact `Money` value object.
+Backend desenvolvido para o desafio técnico da Jungle Gaming. O projeto está sendo entregue em etapas pequenas e validadas. A versão atual contém a fundação da aplicação, a infraestrutura, o schema financeiro inicial e o Value Object `Money` com precisão decimal.
 
-## Current stage
+## Etapa atual
 
-Implemented:
+Implementado:
 
-- Bun 1.4.4, NestJS 12 and strict TypeScript 6;
-- PostgreSQL 17 and LocalStack Community with SQS in Docker Compose;
-- FIFO transaction queue and FIFO dead-letter queue;
-- MikroORM configuration and reversible initial migration;
-- database constraints for non-negative balances, uniqueness and ledger immutability;
-- framework-independent `Money` with exact decimal arithmetic;
-- liveness and readiness endpoints.
+- Bun 1.4.4, NestJS 12 e TypeScript 6 em modo estrito;
+- PostgreSQL 17 e LocalStack Community com SQS no Docker Compose;
+- fila FIFO de transações e fila FIFO de mensagens mortas (DLQ);
+- configuração do MikroORM e migration inicial reversível;
+- constraints de banco para saldo não negativo, unicidade e imutabilidade do ledger;
+- `Money` independente de framework e com aritmética decimal exata;
+- endpoints de liveness e readiness.
 
-Wallet and wagering use cases are intentionally not part of this first stage yet. See `IMPLEMENTATION_PLAN.md` for the delivery sequence.
+Os casos de uso de wallet e apostas ainda não fazem parte desta primeira etapa. Consulte `IMPLEMENTATION_PLAN.md` para acompanhar a sequência de implementação.
 
-## Run with Docker
+## Execução com Docker
 
-Docker is the only host prerequisite.
+O único pré-requisito na máquina é o Docker.
 
 ```bash
 docker compose up --build -d
@@ -26,7 +26,7 @@ curl http://localhost:3000/health/live
 curl http://localhost:3000/health/ready
 ```
 
-Expected health response:
+Resposta esperada dos endpoints de saúde:
 
 ```json
 {
@@ -35,15 +35,15 @@ Expected health response:
 }
 ```
 
-Stop the containers without deleting the persisted volumes:
+Para interromper os containers sem excluir os volumes persistidos:
 
 ```bash
 docker compose down
 ```
 
-## Validate
+## Validação
 
-The host does not need a Bun installation. Commands use the pinned runtime image:
+Não é necessário instalar Bun na máquina. Os comandos utilizam a imagem com a versão fixada do runtime:
 
 ```bash
 docker run --rm --user "$(id -u):$(id -g)" \
@@ -58,18 +58,18 @@ docker run --rm --user "$(id -u):$(id -g)" \
 
 ## Migrations
 
-With PostgreSQL running:
+Com o PostgreSQL em execução:
 
 ```bash
 docker compose run --rm app bun run db:migrate
 docker compose run --rm app bun run db:migrate:down
 ```
 
-Migrations are transactional, versioned and reversible. The development Compose service applies pending migrations before accepting traffic; production deployments should run the migration command as a separate release step.
+As migrations são transacionais, versionadas e reversíveis. O serviço de desenvolvimento no Compose aplica as migrations pendentes antes de aceitar requisições. Em produção, as migrations devem ser executadas como uma etapa separada do processo de entrega.
 
-## Health contracts
+## Contratos de saúde
 
-- `GET /health/live`: verifies that the process can answer requests.
-- `GET /health/ready`: verifies PostgreSQL and the main SQS queue.
+- `GET /health/live`: verifica se o processo consegue responder às requisições.
+- `GET /health/ready`: verifica a conexão com o PostgreSQL e a fila SQS principal.
 
-Health endpoints are intentionally unauthenticated. Authentication has no challenge score and will remain an explicit extension point for an external OIDC provider.
+Os endpoints de saúde não exigem autenticação. Como autenticação não pontua no desafio, ela permanecerá como um ponto explícito de extensão para integração futura com um provedor OIDC externo.
