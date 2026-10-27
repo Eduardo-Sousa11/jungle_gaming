@@ -1,0 +1,68 @@
+name: jungle-gaming
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-jungle_gaming}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-jungle}
+      POSTGRES_USER: ${DATABASE_USER:-jungle}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  localstack:
+    # Pinned Community image; it does not require a commercial auth token.
+    image: localstack/localstack:4.9.2
+    environment:
+      SERVICES: sqs
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "4566:4566"
+    volumes:
+      - ./infrastructure/localstack/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh:ro
+      - localstack_data:/var/lib/localstack
+
+  app:
+    build:
+      context: .
+      target: development
+    environment:
+      APP_PORT: 3000
+      AWS_ACCESS_KEY_ID: test
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_SECRET_ACCESS_KEY: test
+      DATABASE_HOST: postgres
+      DATABASE_NAME: ${DATABASE_NAME:-jungle_gaming}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-jungle}
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${DATABASE_USER:-jungle}
+      SQS_ENDPOINT: http://localstack:4566
+      WAGER_DLQ_NAME: wager-transactions-dlq.fifo
+      WAGER_QUEUE_NAME: wager-transactions.fifo
+    depends_on:
+      localstack:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - .:/app
+      - app_node_modules:/app/node_modules
+    command: ["sh", "-c", "bun run db:migrate && bun run dev"]
+
+volumes:
+  app_node_modules:
+  localstack_data:
+  postgres_data:

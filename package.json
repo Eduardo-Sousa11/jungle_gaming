@@ -1,0 +1,50 @@
+{
+  "name": "jungle_gaming",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Distributed wagering processor for the Jungle Gaming backend challenge",
+  "license": "UNLICENSED",
+  "packageManager": "bun@1.4.4",
+  "type": "module",
+  "scripts": {
+    "build": "nest build",
+    "check": "bun run typecheck && bun test",
+    "db:migrate": "mikro-orm migration:up",
+    "db:migrate:create": "mikro-orm migration:create",
+    "db:migrate:down": "mikro-orm migration:down",
+    "dev": "bun --watch src/main.ts",
+    "infra:down": "docker compose down",
+    "infra:up": "docker compose up -d postgres localstack",
+    "start": "bun src/main.ts",
+    "start:prod": "bun dist/src/main.js",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sqs": "3.1157.0",
+    "@mikro-orm/core": "7.2.5",
+    "@mikro-orm/migrations": "7.2.5",
+    "@mikro-orm/nestjs": "7.1.0",
+    "@mikro-orm/postgresql": "7.2.5",
+    "@nestjs/common": "12.2.0",
+    "@nestjs/config": "12.0.1",
+    "@nestjs/core": "12.2.0",
+    "@nestjs/platform-express": "12.2.0",
+    "@nestjs/terminus": "12.1.0",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.15.1",
+    "decimal.js": "10.6.0",
+    "dotenv": "18.0.9",
+    "pg": "8.23.1",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@mikro-orm/cli": "7.2.5",
+    "@nestjs/cli": "12.0.10",
+    "@nestjs/testing": "12.2.0",
+    "@types/bun": "1.4.4",
+    "@types/node": "26.6.5",
+    "typescript": "6.0.3"
+  }
+}
