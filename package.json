@@ -18,6 +18,7 @@
     "start": "bun src/main.ts",
     "start:prod": "bun dist/src/main.js",
     "test": "bun test",
+    "test:integration": "bun test ./test/integration/create-wallet.integration.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

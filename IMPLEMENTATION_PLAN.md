@@ -10,7 +10,7 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 | Configurar PostgreSQL e LocalStack no Compose | Crítica | DONE | Ambos os containers ficam saudáveis |
 | Configurar MikroORM e migração inicial reversível | Crítica | DONE | Ciclo de migração up/down/up aprovado |
 | Implementar `Money` independente de framework | Eliminatória | DONE | Testes unitários de precisão decimal aprovados |
-| Implementar Wallet e lançamento de abertura | Crítica | TODO | Criação atômica e versão iniciada em 1 |
+| Implementar Wallet e lançamento de abertura | Crítica | DONE | Criação atômica e versão iniciada em 1 |
 | Implementar máquina de estados da transação | Crítica | TODO | Transições terminais inválidas são impedidas |
 | Implementar BET, WIN, LOSS, REFUND e ROLLBACK | Eliminatória | TODO | Testes da matriz de operações aprovados |
 | Implementar idempotência persistente e lock da wallet | Eliminatória | TODO | Testes de duplicação e corrida aprovados |
@@ -57,3 +57,16 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 - Trigger de imutabilidade do ledger: verificado no PostgreSQL.
 - Saúde do PostgreSQL e LocalStack/SQS: aprovada.
 - `GET /health/live` e `GET /health/ready`: HTTP 200.
+
+### Wallet e lançamento de abertura — 27/10/2026
+
+- `bun run typecheck`: aprovado.
+- `bun run build`: aprovado.
+- `bun test`: 37 aprovados e 0 falhas.
+- `bun run test:integration`: 4 aprovados e 0 falhas no PostgreSQL real.
+- Wallet com saldo positivo: wallet, `OPENING` e ledger persistidos atomicamente.
+- Wallet com saldo zero: nenhuma transação e nenhum lançamento gerados.
+- Falha no insert do ledger: wallet e `OPENING` revertidos por rollback.
+- Duplicidade de jogador/moeda: HTTP 409 e código `WALLET_ALREADY_EXISTS`.
+- Payload inválido: HTTP 400.
+- Reconstrução pelo ledger: saldo armazenado `100.00`, saldo calculado `100.00`.

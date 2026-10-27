@@ -1,6 +1,10 @@
 import { Migrator } from '@mikro-orm/migrations';
 import { defineConfig } from '@mikro-orm/postgresql';
 
+import { WalletLedgerEntryRecord } from './entities/wallet-ledger-entry.record';
+import { WalletRecord } from './entities/wallet.record';
+import { WagerTransactionRecord } from './entities/wager-transaction.record';
+
 function databasePort(): number {
   const rawPort = process.env.DATABASE_PORT ?? '5432';
   const port = Number.parseInt(rawPort, 10);
@@ -17,8 +21,7 @@ export default defineConfig({
   discovery: {
     warnWhenNoEntities: false,
   },
-  entities: [],
-  entitiesTs: [],
+  entities: [WalletRecord, WagerTransactionRecord, WalletLedgerEntryRecord],
   extensions: [Migrator],
   host: process.env.DATABASE_HOST ?? 'localhost',
   migrations: {

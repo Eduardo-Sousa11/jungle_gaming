@@ -1,6 +1,6 @@
 # Jungle Gaming — Processador Distribuído de Apostas
 
-Backend desenvolvido para o desafio técnico da Jungle Gaming. O projeto está sendo entregue em etapas pequenas e validadas. A versão atual contém a fundação da aplicação, a infraestrutura, o esquema financeiro inicial e o objeto de valor `Money` com precisão decimal.
+Backend desenvolvido para o desafio técnico da Jungle Gaming. O projeto está sendo entregue em etapas pequenas e validadas. A versão atual contém a fundação da aplicação, a infraestrutura, o esquema financeiro inicial, o objeto de valor `Money` e a criação atômica de wallets.
 
 ## Etapa atual
 
@@ -12,9 +12,10 @@ Implementado:
 - configuração do MikroORM e migração inicial reversível;
 - restrições de banco para saldo não negativo, unicidade e imutabilidade do ledger;
 - `Money` independente de framework e com aritmética decimal exata;
+- criação de wallet com transação interna `OPENING` e lançamento no ledger;
 - endpoints de liveness e readiness.
 
-Os casos de uso de wallet e apostas ainda não fazem parte desta primeira etapa. Consulte `IMPLEMENTATION_PLAN.md` para acompanhar a sequência de implementação.
+O processamento de BET, WIN, LOSS, REFUND e ROLLBACK ainda não faz parte da versão atual. Consulte `IMPLEMENTATION_PLAN.md` para acompanhar a sequência de implementação.
 
 ## Execução com Docker
 
@@ -55,6 +56,39 @@ docker run --rm --user "$(id -u):$(id -g)" \
 docker run --rm --user "$(id -u):$(id -g)" \
   -v "$PWD:/app" -w /app oven/bun:1.4.4 bun run build
 ```
+
+Com os serviços do Compose em execução, rode os testes de integração reais:
+
+```bash
+docker compose exec app bun run test:integration
+```
+
+## Criar uma wallet
+
+```bash
+curl -X POST http://localhost:3000/wallets \
+  -H 'Content-Type: application/json' \
+  --data '{
+    "playerId": "019a29f0-7c62-7b84-8f4a-123456789abc",
+    "initialBalance": {
+      "amount": "100.00",
+      "currency": "BRL"
+    }
+  }'
+```
+
+Resposta HTTP `201`:
+
+```json
+{
+  "id": "2c058153-0370-4b44-99f4-0af39361859f",
+  "playerId": "019a29f0-7c62-7b84-8f4a-123456789abc",
+  "balance": { "amount": "100.00", "currency": "BRL" },
+  "version": 1
+}
+```
+
+Quando o saldo inicial é maior que zero, wallet, transação `OPENING` e lançamento `CREDIT` são persistidos na mesma transação SQL. Saldo inicial `0.00` cria somente a wallet. Uma segunda wallet para o mesmo `playerId` e moeda retorna HTTP `409` com o código `WALLET_ALREADY_EXISTS`.
 
 ## Migrações
 
