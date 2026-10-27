@@ -2,7 +2,7 @@
 
 Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 
-## Dia 1 — Fundação e núcleo financeiro
+## Fundação e núcleo financeiro
 
 | Tarefa | Prioridade | Status | Critério de aceite |
 |---|---|---|---|
@@ -15,7 +15,7 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 | Implementar BET, WIN, LOSS, REFUND e ROLLBACK | Eliminatória | TODO | Testes da matriz de operações aprovados |
 | Implementar idempotência persistente e lock da wallet | Eliminatória | TODO | Testes de duplicação e corrida aprovados |
 
-## Dia 2 — API, mensageria e resiliência
+## API, mensageria e resiliência
 
 | Tarefa | Prioridade | Status | Critério de aceite |
 |---|---|---|---|
@@ -27,7 +27,7 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 | Implementar retry, DLQ e graceful shutdown | Alta | TODO | Testes de integração dos fluxos de falha aprovados |
 | Implementar logs estruturados, métricas e health | Alta | TODO | Sinais obrigatórios disponibilizados |
 
-## Dia 3 — Validação distribuída e entrega
+## Validação distribuída e entrega
 
 | Tarefa | Prioridade | Status | Critério de aceite |
 |---|---|---|---|
