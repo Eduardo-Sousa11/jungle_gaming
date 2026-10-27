@@ -1,31 +1,31 @@
-# Engineering rules
+# Regras de engenharia
 
-## Source of truth
+## Fonte de verdade
 
-- The official challenge README is the product specification.
-- Keep `IMPLEMENTATION_PLAN.md` current after each completed stage.
-- Do not claim a command or test passed unless it was executed successfully.
+- O README oficial do desafio é a especificação do produto.
+- Mantenha o `IMPLEMENTATION_PLAN.md` atualizado após cada etapa concluída.
+- Não declare que um comando ou teste passou sem que ele tenha sido executado com sucesso.
 
-## Non-negotiable guarantees
+## Garantias inegociáveis
 
-- Never use JavaScript `number` for monetary amounts.
-- Never rely on memory or SQS FIFO as the final idempotency guarantee.
-- Never publish integration events before the financial transaction commits.
-- Never update or delete ledger entries.
-- Never use a global lock; concurrency is isolated by wallet.
-- PostgreSQL constraints must enforce uniqueness and non-negative balances.
-- Domain code must not import NestJS, MikroORM, PostgreSQL, or AWS packages.
+- Nunca utilize `number` do JavaScript para representar valores monetários.
+- Nunca dependa de memória ou do SQS FIFO como garantia definitiva de idempotência.
+- Nunca publique eventos de integração antes do commit da transação financeira.
+- Nunca atualize ou exclua lançamentos do ledger.
+- Nunca utilize lock global; a concorrência deve ser isolada por wallet.
+- Constraints do PostgreSQL devem garantir unicidade e saldo não negativo.
+- O código de domínio não pode importar pacotes do NestJS, MikroORM, PostgreSQL ou AWS.
 
-## Architecture
+## Arquitetura
 
-- `domain`: entities, value objects, domain errors and invariants.
-- `application`: use cases and ports.
-- `infrastructure`: PostgreSQL, MikroORM, SQS, workers and observability.
-- `presentation`: HTTP controllers, DTOs and error mapping.
-- Use private constructors with `create`, `from` or `rehydrate` factories.
-- HTTP and SQS must call the same wagering use case.
+- `domain`: entidades, objetos de valor, erros de domínio e invariantes.
+- `application`: casos de uso e portas.
+- `infrastructure`: PostgreSQL, MikroORM, SQS, workers e observabilidade.
+- `presentation`: controladores HTTP, DTOs e mapeamento de erros.
+- Utilize construtores privados com métodos fábrica `create`, `from` ou `rehydrate`.
+- HTTP e SQS devem chamar o mesmo caso de uso de processamento de apostas.
 
-## Commands
+## Comandos
 
 ```bash
 docker run --rm -v "$PWD:/app" -w /app oven/bun:1.4.4 bun install
@@ -35,9 +35,9 @@ docker compose run --rm app bun run db:migrate
 docker compose up --build app
 ```
 
-## Delivery
+## Entrega
 
-- Implement one traceable stage at a time.
-- Run type checking and relevant tests before every commit.
-- Use feature branches and merge reviewed pull requests into `main`.
-- Preserve user changes and keep commits scoped to the active stage.
+- Implemente uma etapa rastreável por vez.
+- Execute a verificação de tipos e os testes relevantes antes de cada commit.
+- Utilize branches de funcionalidade e faça merge de Pull Requests revisados na `main`.
+- Preserve alterações existentes e mantenha os commits limitados à etapa ativa.

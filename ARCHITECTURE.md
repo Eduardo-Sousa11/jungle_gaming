@@ -1,25 +1,25 @@
-# Architecture
+# Arquitetura
 
-## Boundaries
+## Limites arquiteturais
 
-The service follows four dependency-oriented areas:
+O serviço segue quatro áreas orientadas por dependências:
 
-- **Domain** contains value objects, entities and financial invariants. It has no NestJS, ORM, database or AWS imports.
-- **Application** will contain use cases and ports. HTTP and SQS will invoke the same wagering use case.
-- **Infrastructure** owns MikroORM, PostgreSQL, SQS, migrations, workers and operational adapters.
-- **Presentation** owns HTTP contracts, validation and error mapping.
+- **Domain** contém objetos de valor, entidades e invariantes financeiros. Não possui imports do NestJS, ORM, banco de dados ou AWS.
+- **Application** conterá casos de uso e portas. HTTP e SQS chamarão o mesmo caso de uso de processamento de apostas.
+- **Infrastructure** contém MikroORM, PostgreSQL, SQS, migrations, workers e adaptadores operacionais.
+- **Presentation** contém contratos HTTP, validações e mapeamento de erros.
 
-This is a modular monolith. Multiple stateless instances will share PostgreSQL and SQS; distributed microservices would add failure modes without improving the challenge's financial guarantees.
+Este projeto é um monólito modular. Múltiplas instâncias sem estado compartilharão PostgreSQL e SQS. Microserviços distribuídos adicionariam modos de falha sem melhorar as garantias financeiras exigidas pelo desafio.
 
 ## Money
 
-Money enters and leaves the system as an exact decimal string with two places. `decimal.js` performs arithmetic and PostgreSQL stores amounts as `NUMERIC(20, 2)`. JavaScript `number` is never used for monetary representation.
+Valores monetários entram e saem do sistema como strings decimais exatas com duas casas. A biblioteca `decimal.js` realiza a aritmética e o PostgreSQL armazena os valores como `NUMERIC(20, 2)`. O tipo `number` do JavaScript nunca é utilizado para representação monetária.
 
-`Money.from` rejects negative external inputs, scientific notation, non-canonical scale, unsupported ISO-4217 currencies and values that exceed database precision. Internal arithmetic may produce a negative `Money`, which is required for operations such as reconciliation differences and `negate()`.
+`Money.from` rejeita entradas externas negativas, notação científica, escala não canônica, moedas ISO-4217 não suportadas e valores que excedem a precisão do banco. A aritmética interna pode produzir um `Money` negativo, necessário para operações como diferenças de reconciliação e `negate()`.
 
-## Database guarantees
+## Garantias do banco de dados
 
-The initial schema establishes the five required tables:
+O schema inicial estabelece as cinco tabelas obrigatórias:
 
 - `wallets`;
 - `wager_transactions`;
@@ -27,22 +27,22 @@ The initial schema establishes the five required tables:
 - `inbox_messages`;
 - `outbox_messages`.
 
-PostgreSQL enforces non-negative wallet balances, idempotency uniqueness, provider transaction uniqueness, ledger arithmetic and one ledger entry per wallet/transaction. A trigger rejects every ledger `UPDATE` and `DELETE`.
+O PostgreSQL garante saldo não negativo nas wallets, unicidade da idempotência, unicidade das transações do provedor, aritmética do ledger e no máximo um lançamento por wallet/transação. Um trigger rejeita qualquer `UPDATE` ou `DELETE` no ledger.
 
-The transaction record includes a response snapshot so an idempotent replay can return the original observed result rather than a later wallet balance.
+O registro da transação inclui um snapshot da resposta para que um replay idempotente retorne o resultado originalmente observado, em vez de um saldo posterior da wallet.
 
-## Planned concurrency and delivery semantics
+## Concorrência e semântica de entrega planejadas
 
-The application will acquire a pessimistic row lock on the affected wallet. Locks will be acquired in stable wallet-ID order when an operation ever spans more than one lock. There will be no global financial lock.
+A aplicação adquirirá um lock pessimista na linha da wallet afetada. Quando uma operação precisar de mais de um lock, eles serão adquiridos em uma ordem estável por ID da wallet. Não haverá lock financeiro global.
 
-Financial changes, ledger, inbox and outbox will commit in one PostgreSQL transaction. Outbox delivery will be at-least-once: concurrent publishers will claim due rows with a lease/`SKIP LOCKED`; a crash after publication but before marking the row can duplicate an event, so event IDs and consumers must be idempotent.
+Alterações financeiras, ledger, inbox e outbox serão confirmados em uma única transação PostgreSQL. A entrega da outbox será pelo menos uma vez (*at-least-once*): publishers concorrentes reservarão registros prontos com lease/`SKIP LOCKED`. Uma falha após a publicação e antes da confirmação do registro pode duplicar um evento; por isso, IDs de eventos e consumidores devem ser idempotentes.
 
-SQS FIFO grouping is an optimization. PostgreSQL constraints and locks remain the source of correctness.
+O agrupamento do SQS FIFO é apenas uma otimização. Constraints e locks do PostgreSQL continuam sendo a fonte de correção.
 
-## Authentication decision
+## Decisão sobre autenticação
 
-Authentication is omitted from the three-day implementation priority because the official challenge assigns it no points. Health endpoints remain public and SQS is treated as an internal channel. The HTTP layer will retain a guard extension point for an external OIDC provider such as Keycloak; no password system will be built locally.
+A autenticação foi retirada das prioridades de implementação dos três dias porque o desafio oficial não atribui pontos a ela. Os endpoints de saúde permanecem públicos e o SQS é tratado como canal interno. A camada HTTP manterá um ponto de extensão de guard para um provedor OIDC externo, como Keycloak. Nenhum sistema local de senhas será desenvolvido.
 
-## Current limitations
+## Limitações atuais
 
-This foundation stage does not yet expose wallet or transaction endpoints, run workers, or process financial operations. Those capabilities remain explicitly `TODO` in `IMPLEMENTATION_PLAN.md`.
+Esta etapa de fundação ainda não disponibiliza endpoints de wallet ou transações, não executa workers e não processa operações financeiras. Essas funcionalidades permanecem explicitamente como `TODO` no `IMPLEMENTATION_PLAN.md`.

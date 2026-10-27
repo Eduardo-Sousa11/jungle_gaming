@@ -1,60 +1,59 @@
-# Implementation plan
+# Plano de implementação
 
-Status values: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
+Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 
-## Day 1 — Foundation and financial core
+## Dia 1 — Fundação e núcleo financeiro
 
-| Task | Priority | Status | Acceptance criteria |
+| Tarefa | Prioridade | Status | Critério de aceite |
 |---|---|---|---|
-| Bun, NestJS and strict TypeScript setup | Critical | DONE | Build and type checking pass |
-| PostgreSQL and LocalStack Compose services | Critical | DONE | Both containers become healthy |
-| MikroORM and reversible initial migration | Critical | DONE | Migration up/down/up succeeds |
-| Framework-independent `Money` | Eliminatory | DONE | Exact decimal unit tests pass |
-| Wallet and opening ledger entry | Critical | TODO | Creation is atomic and version starts at 1 |
-| Wager transaction state machine | Critical | TODO | Invalid terminal transitions fail |
-| BET, WIN, LOSS, REFUND and ROLLBACK | Eliminatory | TODO | Operation matrix tests pass |
-| Persistent idempotency and wallet locking | Eliminatory | TODO | Duplicate/race tests pass |
+| Configurar Bun, NestJS e TypeScript strict | Crítica | DONE | Build e verificação de tipos aprovados |
+| Configurar PostgreSQL e LocalStack no Compose | Crítica | DONE | Ambos os containers ficam saudáveis |
+| Configurar MikroORM e migração inicial reversível | Crítica | DONE | Ciclo de migração up/down/up aprovado |
+| Implementar `Money` independente de framework | Eliminatória | DONE | Testes unitários de precisão decimal aprovados |
+| Implementar Wallet e lançamento de abertura | Crítica | TODO | Criação atômica e versão iniciada em 1 |
+| Implementar máquina de estados da transação | Crítica | TODO | Transições terminais inválidas são impedidas |
+| Implementar BET, WIN, LOSS, REFUND e ROLLBACK | Eliminatória | TODO | Testes da matriz de operações aprovados |
+| Implementar idempotência persistente e lock da wallet | Eliminatória | TODO | Testes de duplicação e corrida aprovados |
 
-## Day 2 — API, messaging and resilience
+## Dia 2 — API, mensageria e resiliência
 
-| Task | Priority | Status | Acceptance criteria |
+| Tarefa | Prioridade | Status | Critério de aceite |
 |---|---|---|---|
-| Required HTTP endpoints | High | TODO | Contract tests pass |
-| Ledger cursor and reconciliation | High | TODO | Stable pagination and exact reconstruction |
-| SQS consumer and transactional inbox | Critical | TODO | Redelivery does not duplicate effects |
-| Transactional outbox publisher | Eliminatory | TODO | Post-commit crash does not lose events |
-| Pending-reference worker | Critical | TODO | Out-of-order references are resolved |
-| Retry, DLQ and graceful shutdown | High | TODO | Failure-path integration tests pass |
-| Structured logs, metrics and health | High | TODO | Required signals are exposed |
+| Implementar endpoints HTTP obrigatórios | Alta | TODO | Testes de contrato aprovados |
+| Implementar cursor do ledger e reconciliação | Alta | TODO | Paginação estável e reconstrução exata |
+| Implementar consumer SQS e inbox transacional | Crítica | TODO | Redelivery não duplica efeitos |
+| Implementar publisher da outbox transacional | Eliminatória | TODO | Falha após o commit não perde eventos |
+| Implementar worker de referências pendentes | Crítica | TODO | Referências fora de ordem são resolvidas |
+| Implementar retry, DLQ e graceful shutdown | Alta | TODO | Testes de integração dos fluxos de falha aprovados |
+| Implementar logs estruturados, métricas e health | Alta | TODO | Sinais obrigatórios disponibilizados |
 
-## Day 3 — Distributed validation and delivery
+## Dia 3 — Validação distribuída e entrega
 
-| Task | Priority | Status | Acceptance criteria |
+| Tarefa | Prioridade | Status | Critério de aceite |
 |---|---|---|---|
-| PostgreSQL/LocalStack integration suite | Eliminatory | TODO | Tests use real containers |
-| Fifty concurrent duplicate requests | Eliminatory | TODO | Exactly one financial effect |
-| Same-wallet insufficient-funds race | Eliminatory | TODO | One processed, one rejected, balance 20.00 |
-| Three application instances | Eliminatory | TODO | Distributed consistency holds |
-| Consumer and publisher crash recovery | Critical | TODO | Restart converges without lost effects |
-| Final reconciliation audit | Critical | TODO | Every wallet equals reconstructed ledger |
-| README and ARCHITECTURE documentation | High | TODO | Setup, decisions and limitations documented |
-| Technical demonstration script | Medium | TODO | Main scenarios are reproducible |
+| Criar suíte de integração com PostgreSQL/LocalStack | Eliminatória | TODO | Testes utilizam containers reais |
+| Testar cinquenta requisições duplicadas concorrentes | Eliminatória | TODO | Exatamente um efeito financeiro |
+| Testar corrida de saldo insuficiente na mesma wallet | Eliminatória | TODO | Uma processada, uma rejeitada e saldo 20,00 |
+| Testar três instâncias da aplicação | Eliminatória | TODO | Consistência distribuída preservada |
+| Testar recuperação de falhas do consumer e publisher | Crítica | TODO | Reinicialização converge sem perder efeitos |
+| Executar auditoria final de reconciliação | Crítica | TODO | Toda wallet equivale ao ledger reconstruído |
+| Finalizar documentação README e ARCHITECTURE | Alta | TODO | Setup, decisões e limitações documentados |
+| Criar roteiro de demonstração técnica | Média | TODO | Cenários principais são reproduzíveis |
 
-## Current stage risks
+## Riscos da etapa atual
 
-- Host Bun is unavailable, so all Bun commands are executed with the pinned Docker image.
-- GitHub publishing requires an authenticated GitHub integration or CLI session.
-- Integration tests must avoid timing assumptions and use explicit readiness checks.
+- O Bun não está instalado no host; por isso, todos os comandos Bun utilizam a imagem Docker com versão fixada.
+- Testes de integração devem evitar suposições de tempo e utilizar verificações explícitas de prontidão.
 
-## Validation log
+## Registro de validação
 
-### Foundation stage — 2026-10-26
+### Etapa de fundação — 26/10/2026
 
-- `bun run typecheck`: passed.
-- `bun run build`: passed.
-- `bun test`: 20 passed, 0 failed.
-- Migration cycle `up -> down -> up`: passed against PostgreSQL 17.
-- Negative wallet balance constraint: verified against PostgreSQL.
-- Ledger mutation trigger: verified against PostgreSQL.
-- PostgreSQL and LocalStack/SQS health: passed.
-- `GET /health/live` and `GET /health/ready`: HTTP 200.
+- `bun run typecheck`: aprovado.
+- `bun run build`: aprovado.
+- `bun test`: 20 aprovados e 0 falhas.
+- Ciclo de migração `up -> down -> up`: aprovado no PostgreSQL 17.
+- Constraint de saldo não negativo da wallet: verificada no PostgreSQL.
+- Trigger de imutabilidade do ledger: verificado no PostgreSQL.
+- Saúde do PostgreSQL e LocalStack/SQS: aprovada.
+- `GET /health/live` e `GET /health/ready`: HTTP 200.
