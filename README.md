@@ -1,6 +1,6 @@
 # Jungle Gaming — Processador Distribuído de Apostas
 
-Backend desenvolvido para o desafio técnico da Jungle Gaming. O projeto está sendo entregue em etapas pequenas e validadas. A versão atual contém a fundação da aplicação, a infraestrutura, o schema financeiro inicial e o Value Object `Money` com precisão decimal.
+Backend desenvolvido para o desafio técnico da Jungle Gaming. O projeto está sendo entregue em etapas pequenas e validadas. A versão atual contém a fundação da aplicação, a infraestrutura, o esquema financeiro inicial e o objeto de valor `Money` com precisão decimal.
 
 ## Etapa atual
 
@@ -9,8 +9,8 @@ Implementado:
 - Bun 1.4.4, NestJS 12 e TypeScript 6 em modo estrito;
 - PostgreSQL 17 e LocalStack Community com SQS no Docker Compose;
 - fila FIFO de transações e fila FIFO de mensagens mortas (DLQ);
-- configuração do MikroORM e migration inicial reversível;
-- constraints de banco para saldo não negativo, unicidade e imutabilidade do ledger;
+- configuração do MikroORM e migração inicial reversível;
+- restrições de banco para saldo não negativo, unicidade e imutabilidade do ledger;
 - `Money` independente de framework e com aritmética decimal exata;
 - endpoints de liveness e readiness.
 
@@ -56,7 +56,7 @@ docker run --rm --user "$(id -u):$(id -g)" \
   -v "$PWD:/app" -w /app oven/bun:1.4.4 bun run build
 ```
 
-## Migrations
+## Migrações
 
 Com o PostgreSQL em execução:
 
@@ -65,7 +65,7 @@ docker compose run --rm app bun run db:migrate
 docker compose run --rm app bun run db:migrate:down
 ```
 
-As migrations são transacionais, versionadas e reversíveis. O serviço de desenvolvimento no Compose aplica as migrations pendentes antes de aceitar requisições. Em produção, as migrations devem ser executadas como uma etapa separada do processo de entrega.
+As migrações são transacionais, versionadas e reversíveis. O serviço de desenvolvimento no Compose aplica as migrações pendentes antes de aceitar requisições. Em produção, elas devem ser executadas como uma etapa separada do processo de entrega.
 
 ## Contratos de saúde
 
