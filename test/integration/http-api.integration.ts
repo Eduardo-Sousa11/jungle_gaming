@@ -7,6 +7,7 @@ import { MikroORM } from '@mikro-orm/postgresql';
 
 import { AppModule } from '../../src/app.module';
 import { createApplicationValidationPipe } from '../../src/presentation/http/shared/application-validation.pipe';
+import { NestWalletReconciliationMonitor } from '../../src/infrastructure/observability/wallet-reconciliation.monitor';
 import {
   WagerTransactionFailureCode,
   WagerTransactionKind,
@@ -16,11 +17,13 @@ import {
 describe('HTTP wagering contracts', () => {
   let app: INestApplication;
   let baseUrl: string;
+  let orm: MikroORM;
 
   beforeAll(async () => {
     app = await NestFactory.create(AppModule, { logger: false });
     app.useGlobalPipes(createApplicationValidationPipe());
-    await app.get(MikroORM).migrator.up();
+    orm = app.get(MikroORM);
+    await orm.migrator.up();
     await app.listen(0, '127.0.0.1');
     baseUrl = await app.getUrl();
   });
@@ -42,6 +45,117 @@ describe('HTTP wagering contracts', () => {
     expect(body['version']).toBe(1);
     expect(typeof body['createdAt']).toBe('string');
     expect(typeof body['updatedAt']).toBe('string');
+  });
+
+  test('paginates the ledger with an opaque and wallet-bound cursor', async () => {
+    const wallet = await createWallet('100.00');
+    for (let index = 0; index < 3; index += 1) {
+      const wagerResponse = await postWager(wagerBody(wallet), randomUUID());
+      expect(wagerResponse.status).toBe(200);
+    }
+
+    const firstResponse = await fetch(
+      `${baseUrl}/wallets/${wallet.id}/ledger?limit=2`,
+    );
+    const first = await responseBody(firstResponse);
+    const firstItems = objectArray(first, 'items');
+    const cursor = first['nextCursor'];
+
+    expect(firstResponse.status).toBe(200);
+    expect(firstItems).toHaveLength(2);
+    expect(typeof cursor).toBe('string');
+    expect(String(cursor)).not.toContain(wallet.id);
+
+    await new Promise<void>((resolve) => setTimeout(resolve, 5));
+    const newerWagerResponse = await postWager(wagerBody(wallet), randomUUID());
+    expect(newerWagerResponse.status).toBe(200);
+
+    const secondResponse = await fetch(
+      `${baseUrl}/wallets/${wallet.id}/ledger?limit=2&cursor=${encodeURIComponent(String(cursor))}`,
+    );
+    const second = await responseBody(secondResponse);
+    const secondItems = objectArray(second, 'items');
+
+    expect(secondResponse.status).toBe(200);
+    expect(secondItems).toHaveLength(2);
+    expect(second['nextCursor']).toBeUndefined();
+    expect(
+      new Set([...firstItems, ...secondItems].map((entry) => entry['id'])).size,
+    ).toBe(4);
+    expect(
+      [...firstItems, ...secondItems].every(
+        (entry) => moneyAmount(entry, 'money') !== undefined,
+      ),
+    ).toBe(true);
+
+    const anotherWallet = await createWallet('10.00');
+    const foreignCursorResponse = await fetch(
+      `${baseUrl}/wallets/${anotherWallet.id}/ledger?cursor=${encodeURIComponent(String(cursor))}`,
+    );
+    const foreignCursor = await responseBody(foreignCursorResponse);
+    expect(foreignCursorResponse.status).toBe(400);
+    expect(foreignCursor['code']).toBe('INVALID_LEDGER_CURSOR');
+
+    const malformedCursorResponse = await fetch(
+      `${baseUrl}/wallets/${wallet.id}/ledger?cursor=not%2Bbase64url`,
+    );
+    const malformedCursor = await responseBody(malformedCursorResponse);
+    expect(malformedCursorResponse.status).toBe(400);
+    expect(malformedCursor['code']).toBe('INVALID_LEDGER_CURSOR');
+  });
+
+  test('reconciles the stored wallet balance with the complete ledger', async () => {
+    const wallet = await createWallet('100.00');
+    const wagerResponse = await postWager(wagerBody(wallet), randomUUID());
+    expect(wagerResponse.status).toBe(200);
+
+    const response = await fetch(
+      `${baseUrl}/wallets/${wallet.id}/reconciliation`,
+      { method: 'POST' },
+    );
+    const body = await responseBody(response);
+
+    expect(response.status).toBe(200);
+    expect(body['walletId']).toBe(wallet.id);
+    expect(moneyAmount(body, 'storedBalance')).toBe('75.00');
+    expect(moneyAmount(body, 'calculatedBalance')).toBe('75.00');
+    expect(moneyAmount(body, 'difference')).toBe('0.00');
+    expect(body['consistent']).toBe(true);
+    expect(body['checkedEntries']).toBe(2);
+  });
+
+  test('signals a divergence without silently changing the wallet', async () => {
+    const wallet = await createWallet('100.00');
+    const monitor = app.get(NestWalletReconciliationMonitor);
+    const previousDivergences = monitor.recordedDivergences;
+    await orm.em.getConnection().execute(
+      'update "wallets" set "balance" = ? where "id" = ?',
+      ['90.00', wallet.id],
+    );
+
+    try {
+      const response = await fetch(
+        `${baseUrl}/wallets/${wallet.id}/reconciliation`,
+        { method: 'POST' },
+      );
+      const body = await responseBody(response);
+
+      expect(response.status).toBe(200);
+      expect(moneyAmount(body, 'storedBalance')).toBe('90.00');
+      expect(moneyAmount(body, 'calculatedBalance')).toBe('100.00');
+      expect(moneyAmount(body, 'difference')).toBe('-10.00');
+      expect(body['consistent']).toBe(false);
+      expect(monitor.recordedDivergences).toBe(previousDivergences + 1);
+
+      const walletResponse = await fetch(`${baseUrl}/wallets/${wallet.id}`);
+      const unchangedWallet = await responseBody(walletResponse);
+      expect(moneyAmount(unchangedWallet, 'balance')).toBe('90.00');
+    } finally {
+      await orm.em.getConnection().execute(
+        'update "wallets" set "balance" = ? where "id" = ?',
+        ['100.00', wallet.id],
+      );
+    }
   });
 
   test('requires Idempotency-Key when submitting a wager', async () => {
@@ -234,4 +348,18 @@ function moneyAmount(
     return undefined;
   }
   return value.amount;
+}
+
+function objectArray(
+  body: Readonly<Record<string, unknown>>,
+  field: string,
+): ReadonlyArray<Record<string, unknown>> {
+  const value = body[field];
+  if (
+    !Array.isArray(value) ||
+    !value.every((item) => typeof item === 'object' && item !== null)
+  ) {
+    throw new Error(`${field} is not an object array`);
+  }
+  return value as ReadonlyArray<Record<string, unknown>>;
 }

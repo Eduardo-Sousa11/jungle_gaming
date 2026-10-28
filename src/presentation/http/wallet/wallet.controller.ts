@@ -10,6 +10,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
 } from '@nestjs/common';
 
 import {
@@ -21,16 +22,31 @@ import { GetWalletUseCase } from '../../../application/wallet/get-wallet/get-wal
 import { WalletNotFoundError } from '../../../application/wallet/get-wallet/get-wallet.errors';
 import type { WalletView } from '../../../application/wallet/get-wallet/wallet-query.repository';
 import {
+  InvalidLedgerCursorError,
+  InvalidLedgerPageLimitError,
+} from '../../../application/wallet/get-wallet-ledger/get-wallet-ledger.errors';
+import {
+  GetWalletLedgerUseCase,
+  type GetWalletLedgerOutput,
+} from '../../../application/wallet/get-wallet-ledger/get-wallet-ledger.use-case';
+import {
+  ReconcileWalletUseCase,
+  type ReconcileWalletOutput,
+} from '../../../application/wallet/reconcile-wallet/reconcile-wallet.use-case';
+import {
   InvalidWalletError,
   WalletAlreadyExistsError,
 } from '../../../domain/wallet/wallet.errors';
 import { CreateWalletDto } from './create-wallet.dto';
+import { GetWalletLedgerQueryDto } from './get-wallet-ledger-query.dto';
 
 @Controller('wallets')
 export class WalletController {
   constructor(
     private readonly createWallet: CreateWalletUseCase,
     private readonly getWallet: GetWalletUseCase,
+    private readonly getWalletLedger: GetWalletLedgerUseCase,
+    private readonly reconcileWallet: ReconcileWalletUseCase,
   ) {}
 
   @Post()
@@ -63,6 +79,52 @@ export class WalletController {
     }
   }
 
+  @Get(':walletId/ledger')
+  async findLedger(
+    @Param('walletId', new ParseUUIDPipe({ version: 'all' })) walletId: string,
+    @Query() query: GetWalletLedgerQueryDto,
+  ): Promise<GetWalletLedgerOutput> {
+    try {
+      return await this.getWalletLedger.execute({
+        walletId,
+        ...(query.cursor === undefined ? {} : { cursor: query.cursor }),
+        ...(query.limit === undefined ? {} : { limit: query.limit }),
+      });
+    } catch (error) {
+      if (error instanceof WalletNotFoundError) {
+        throw this.walletNotFound(error);
+      }
+      if (error instanceof InvalidLedgerCursorError) {
+        throw new BadRequestException({
+          code: 'INVALID_LEDGER_CURSOR',
+          message: error.message,
+        });
+      }
+      if (error instanceof InvalidLedgerPageLimitError) {
+        throw new BadRequestException({
+          code: 'INVALID_LEDGER_LIMIT',
+          message: error.message,
+        });
+      }
+      throw error;
+    }
+  }
+
+  @Post(':walletId/reconciliation')
+  @HttpCode(HttpStatus.OK)
+  async reconcile(
+    @Param('walletId', new ParseUUIDPipe({ version: 'all' })) walletId: string,
+  ): Promise<ReconcileWalletOutput> {
+    try {
+      return await this.reconcileWallet.execute(walletId);
+    } catch (error) {
+      if (error instanceof WalletNotFoundError) {
+        throw this.walletNotFound(error);
+      }
+      throw error;
+    }
+  }
+
   @Get(':walletId')
   async findById(
     @Param('walletId', new ParseUUIDPipe({ version: 'all' })) walletId: string,
@@ -71,12 +133,16 @@ export class WalletController {
       return await this.getWallet.execute(walletId);
     } catch (error) {
       if (error instanceof WalletNotFoundError) {
-        throw new NotFoundException({
-          code: 'WALLET_NOT_FOUND',
-          message: error.message,
-        });
+        throw this.walletNotFound(error);
       }
       throw error;
     }
+  }
+
+  private walletNotFound(error: WalletNotFoundError): NotFoundException {
+    return new NotFoundException({
+      code: 'WALLET_NOT_FOUND',
+      message: error.message,
+    });
   }
 }

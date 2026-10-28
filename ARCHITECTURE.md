@@ -94,7 +94,15 @@ O agrupamento do SQS FIFO é apenas uma otimização. Constraints e locks do Pos
 
 Os resultados são diferenciados por status HTTP: processada `200`, referência pendente `202`, payload inválido `400`, recurso ausente `404`, conflito persistente `409`, rejeição de negócio `422` e indisponibilidade `503`. Erros automáticos de DTO seguem o envelope com código `VALIDATION_ERROR`; os demais erros expõem códigos estáveis específicos.
 
-As consultas de wallet e transação utilizam repositórios de leitura que retornam views da camada de aplicação. Entidades do MikroORM não atravessam a fronteira HTTP. A paginação do ledger e a reconciliação financeira permanecem em uma etapa separada.
+As consultas de wallet, transação e ledger utilizam repositórios de leitura que retornam views da camada de aplicação. Entidades do MikroORM não atravessam a fronteira HTTP.
+
+## Paginação do ledger e reconciliação
+
+O ledger é ordenado por `(created_at DESC, id DESC)`. O cursor Base64URL carrega uma versão de contrato, a wallet, o instante e o identificador do último lançamento retornado. O adaptador valida integralmente o cursor e o caso de uso impede seu reaproveitamento em outra wallet. A consulta seguinte usa keyset pagination com a condição `(created_at, id) < (?, ?)`, em vez de `OFFSET`; assim, novos lançamentos mais recentes não deslocam os itens das páginas seguintes. O índice `wallet_ledger_entries_cursor_idx` segue a mesma ordem da consulta.
+
+A reconciliação lê o saldo armazenado e agrega `NUMERIC` diretamente no PostgreSQL, mantendo valores monetários como strings decimais nas fronteiras. A aplicação reconstrói o saldo por `créditos - débitos`, calcula a diferença como `saldo armazenado - saldo calculado` com `Money` e informa quantos lançamentos foram verificados.
+
+Uma divergência não executa correção automática. O monitor registra um evento estruturado sem incluir os valores financeiros e incrementa um contador local da instância; a futura etapa geral de observabilidade publicará esse contador no mecanismo de métricas do serviço.
 
 ## Decisão sobre autenticação
 
@@ -102,4 +110,4 @@ A autenticação foi retirada das prioridades de implementação dos três dias 
 
 ## Limitações atuais
 
-A versão atual disponibiliza criação e consulta de wallet, submissão de apostas e consultas de transação. Paginação do ledger, reconciliação, inbox, outbox e workers ainda permanecem como `TODO` no `IMPLEMENTATION_PLAN.md`.
+A versão atual disponibiliza criação e consulta de wallet, submissão de apostas, consultas de transação, paginação do ledger e reconciliação financeira. Inbox, outbox, consumers e workers ainda permanecem como `TODO` no `IMPLEMENTATION_PLAN.md`.
