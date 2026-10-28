@@ -1,6 +1,6 @@
 # Jungle Gaming — Processador Distribuído de Apostas
 
-Backend desenvolvido para o desafio técnico da Jungle Gaming. O projeto está sendo entregue em etapas pequenas e validadas. A versão atual contém a fundação da aplicação, a infraestrutura, o esquema financeiro, o objeto de valor `Money`, a criação atômica de wallets e o processamento transacional e idempotente das apostas.
+Backend desenvolvido para o desafio técnico da Jungle Gaming. O projeto está sendo entregue em etapas pequenas e validadas. A versão atual contém a fundação da aplicação, a infraestrutura, o esquema financeiro, o objeto de valor `Money`, a criação atômica de wallets, o processamento transacional e idempotente das apostas, a consulta paginada do ledger e a reconciliação financeira.
 
 ## Etapa atual
 
@@ -17,6 +17,7 @@ Implementado:
 - regras de domínio de BET, WIN, LOSS, REFUND e ROLLBACK, incluindo saldo, ledger e rejeições auditáveis;
 - `ProcessWagerTransactionUseCase` com hash canônico, replay persistente, lock pessimista por wallet e transação SQL atômica;
 - endpoints HTTP para submissão de apostas e consultas de wallet e transação;
+- paginação estável do ledger por cursor opaco e reconciliação exata entre saldo e lançamentos;
 - endpoints de liveness e readiness.
 
 O processamento de apostas está disponível por HTTP. A entrada SQS, inbox, outbox e publicação de eventos pertencem às próximas etapas. Consulte `IMPLEMENTATION_PLAN.md` para acompanhar a sequência de implementação.
@@ -143,11 +144,54 @@ Mapeamento dos resultados:
 
 ```http
 GET /wallets/:walletId
+GET /wallets/:walletId/ledger?cursor=...&limit=50
 GET /wagering/transactions/:transactionId
 GET /providers/:providerId/wagering/transactions/:externalTransactionId
 ```
 
 Payloads inválidos utilizam o código estável `VALIDATION_ERROR`. O consumer SQS reutilizará o mesmo `ProcessWagerTransactionUseCase` da API.
+
+## Ledger paginado
+
+O ledger é retornado do lançamento mais recente para o mais antigo. O limite padrão é `50` e o máximo é `100`. A resposta utiliza `nextCursor` somente quando existe outra página:
+
+```json
+{
+  "items": [
+    {
+      "id": "0192f2a1-fb6f-7c02-a075-9c77d79f04ba",
+      "transactionId": "0192f298-345e-7e38-af88-e43f851a819d",
+      "direction": "DEBIT",
+      "money": { "amount": "25.00", "currency": "BRL" },
+      "balanceBefore": { "amount": "1000.00", "currency": "BRL" },
+      "balanceAfter": { "amount": "975.00", "currency": "BRL" },
+      "createdAt": "2026-10-28T12:34:56.789Z"
+    }
+  ],
+  "nextCursor": "eyJ2IjoxLCJ3IjoiLi4uIn0"
+}
+```
+
+O cursor é opaco, versionado e vinculado à wallet. Um cursor malformado ou emitido para outra wallet retorna HTTP `400` com o código `INVALID_LEDGER_CURSOR`. A paginação não utiliza offset; a continuação é determinada pelo par estável `createdAt` e `id`.
+
+## Reconciliação financeira
+
+```http
+POST /wallets/:walletId/reconciliation
+```
+
+```json
+{
+  "walletId": "0192f291-27dd-7d3f-8071-5f8685deef37",
+  "storedBalance": { "amount": "975.00", "currency": "BRL" },
+  "calculatedBalance": { "amount": "975.00", "currency": "BRL" },
+  "difference": { "amount": "0.00", "currency": "BRL" },
+  "consistent": true,
+  "checkedEntries": 42
+}
+```
+
+`calculatedBalance` é reconstruído pela soma exata dos créditos menos os débitos. `difference` representa `storedBalance - calculatedBalance`. Uma divergência é sinalizada na resposta, registrada em log e contabilizada; o endpoint nunca corrige o saldo silenciosamente.
 
 ## Migrações
 

@@ -20,7 +20,7 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 | Tarefa | Prioridade | Status | Critério de aceite |
 |---|---|---|---|
 | Implementar endpoints HTTP de submissão e consulta | Alta | DONE | Testes de contrato aprovados |
-| Implementar cursor do ledger e reconciliação | Alta | TODO | Paginação estável e reconstrução exata |
+| Implementar cursor do ledger e reconciliação | Alta | DONE | Paginação estável e reconstrução exata |
 | Implementar consumer SQS e inbox transacional | Crítica | TODO | Redelivery não duplica efeitos |
 | Implementar publisher da outbox transacional | Eliminatória | TODO | Falha após o commit não perde eventos |
 | Implementar worker de referências pendentes | Crítica | TODO | Referências fora de ordem são resolvidas |
@@ -117,3 +117,14 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 - `GET /providers/:providerId/wagering/transactions/:externalTransactionId`: consulta pela identidade do provedor.
 - Validação automática: envelope `VALIDATION_ERROR`; `Idempotency-Key` ausente: `IDEMPOTENCY_KEY_REQUIRED`.
 - Status distintos para payload inválido, ausência, conflito, pendência, rejeição e indisponibilidade.
+
+### Paginação do ledger e reconciliação — 28/10/2026
+
+- `npx --yes bun@1.4.4 run check`: aprovado, com 136 testes e 0 falhas.
+- `npx --yes bun@1.4.4 run build`: aprovado.
+- `npx --yes bun@1.4.4 run test:integration`: 21 aprovados e 0 falhas no PostgreSQL 17 real.
+- `GET /wallets/:walletId/ledger`: limite padrão 50, máximo 100 e ordenação determinística por data e identificador.
+- Cursor Base64URL opaco, versionado, validado e vinculado à wallet; cursor inválido retorna `INVALID_LEDGER_CURSOR`.
+- Keyset pagination verificada com novo lançamento inserido entre páginas, sem deslocar ou repetir os lançamentos anteriores.
+- `POST /wallets/:walletId/reconciliation`: saldo calculado exatamente por créditos menos débitos e quantidade de lançamentos verificados.
+- Divergência financeira: sinalizada na resposta, registrada pelo monitor e não corrigida silenciosamente.
