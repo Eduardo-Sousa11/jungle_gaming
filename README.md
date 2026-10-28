@@ -1,6 +1,6 @@
 # Jungle Gaming — Processador Distribuído de Apostas
 
-Backend desenvolvido para o desafio técnico da Jungle Gaming. O projeto está sendo entregue em etapas pequenas e validadas. A versão atual contém a fundação da aplicação, a infraestrutura, o esquema financeiro inicial, o objeto de valor `Money`, a criação atômica de wallets, a máquina de estados e a matriz financeira das transações de aposta.
+Backend desenvolvido para o desafio técnico da Jungle Gaming. O projeto está sendo entregue em etapas pequenas e validadas. A versão atual contém a fundação da aplicação, a infraestrutura, o esquema financeiro, o objeto de valor `Money`, a criação atômica de wallets e o processamento transacional e idempotente das apostas.
 
 ## Etapa atual
 
@@ -15,9 +15,10 @@ Implementado:
 - criação de wallet com transação interna `OPENING` e lançamento no ledger;
 - máquina de estados de `WagerTransaction`, com estados terminais protegidos e validações de referência;
 - regras de domínio de BET, WIN, LOSS, REFUND e ROLLBACK, incluindo saldo, ledger e rejeições auditáveis;
+- `ProcessWagerTransactionUseCase` com hash canônico, replay persistente, lock pessimista por wallet e transação SQL atômica;
 - endpoints de liveness e readiness.
 
-O domínio já aplica a matriz financeira de BET, WIN, LOSS, REFUND e ROLLBACK em memória. O caso de uso que executará essas regras com idempotência persistente, lock por wallet e uma única transação PostgreSQL ainda não faz parte da versão atual. Consulte `IMPLEMENTATION_PLAN.md` para acompanhar a sequência de implementação.
+O processamento de apostas já está implementado nas camadas de aplicação e infraestrutura, mas ainda não foi exposto por HTTP ou SQS. Inbox, outbox e publicação de eventos pertencem às próximas etapas. Consulte `IMPLEMENTATION_PLAN.md` para acompanhar a sequência de implementação.
 
 ## Execução com Docker
 
@@ -91,6 +92,14 @@ Resposta HTTP `201`:
 ```
 
 Quando o saldo inicial é maior que zero, wallet, transação `OPENING` e lançamento `CREDIT` são persistidos na mesma transação SQL. Saldo inicial `0.00` cria somente a wallet. Uma segunda wallet para o mesmo `playerId` e moeda retorna HTTP `409` com o código `WALLET_ALREADY_EXISTS`.
+
+## Processamento transacional de apostas
+
+`ProcessWagerTransactionUseCase` é o ponto central para BET, WIN, LOSS, REFUND e ROLLBACK. O caso de uso calcula SHA-256 sobre o JSON canônico dos campos de negócio, consulta a idempotência persistida, bloqueia somente a linha da wallet afetada e executa uma segunda verificação após o lock.
+
+Wallet, transação e ledger são confirmados na mesma transação PostgreSQL. A unicidade de `(provider_id, idempotency_key)` e `(provider_id, external_transaction_id)` é garantida pelo schema. Repetições idênticas recebem o snapshot da resposta original com `idempotentReplay: true`; a mesma chave com payload diferente gera conflito.
+
+O endpoint HTTP ainda não está disponível. Ele será apenas um adaptador para esse mesmo caso de uso, que também será reutilizado pelo consumer SQS.
 
 ## Migrações
 

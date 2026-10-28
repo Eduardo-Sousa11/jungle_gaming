@@ -9,16 +9,16 @@
   "scripts": {
     "build": "nest build",
     "check": "bun run typecheck && bun test",
-    "db:migrate": "mikro-orm migration:up",
-    "db:migrate:create": "mikro-orm migration:create",
-    "db:migrate:down": "mikro-orm migration:down",
+    "db:migrate": "bunx --bun mikro-orm migration:up --config ./mikro-orm.config.ts",
+    "db:migrate:create": "bunx --bun mikro-orm migration:create --config ./mikro-orm.config.ts",
+    "db:migrate:down": "bunx --bun mikro-orm migration:down --config ./mikro-orm.config.ts",
     "dev": "bun --watch src/main.ts",
     "infra:down": "docker compose down",
     "infra:up": "docker compose up -d postgres localstack",
     "start": "bun src/main.ts",
     "start:prod": "bun dist/src/main.js",
     "test": "bun test",
-    "test:integration": "bun test ./test/integration/create-wallet.integration.ts",
+    "test:integration": "bun test ./test/integration/*.integration.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

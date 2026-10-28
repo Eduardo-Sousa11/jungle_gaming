@@ -506,6 +506,14 @@ export class WagerTransaction {
     }
 
     if (
+      props.referenceExternalTransactionId === props.externalTransactionId
+    ) {
+      throw new InvalidWagerTransactionError(
+        'A transaction cannot reference its own external identifier',
+      );
+    }
+
+    if (
       (props.kind === WagerTransactionKind.Refund ||
         props.kind === WagerTransactionKind.Rollback) &&
       !hasReference
