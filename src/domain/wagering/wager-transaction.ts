@@ -4,6 +4,7 @@ import {
   InvalidTransactionStateError,
   InvalidWagerReferenceError,
   InvalidWagerTransactionError,
+  WagerReferenceFailureReason,
 } from './wager-transaction.errors';
 
 export enum WagerTransactionKind {
@@ -32,6 +33,8 @@ export enum WagerTransactionFailureCode {
   ProviderMismatch = 'PROVIDER_MISMATCH',
   RoundMismatch = 'ROUND_MISMATCH',
   ReferenceNotFound = 'REFERENCE_NOT_FOUND',
+  ReferenceMismatch = 'REFERENCE_MISMATCH',
+  ReferenceNotProcessed = 'REFERENCE_NOT_PROCESSED',
   InvalidReferenceKind = 'INVALID_REFERENCE_KIND',
   ReferenceAmountMismatch = 'REFERENCE_AMOUNT_MISMATCH',
   ReferenceAlreadyReversed = 'REFERENCE_ALREADY_REVERSED',
@@ -223,6 +226,7 @@ export class WagerTransaction {
 
     if (this.referenceExternalTransactionId === undefined) {
       throw new InvalidWagerReferenceError(
+        WagerReferenceFailureReason.Missing,
         'Only a transaction that declares a reference can wait for one',
       );
     }
@@ -336,12 +340,14 @@ export class WagerTransaction {
       !WagerTransaction.isNonBlank(referenceTransactionId)
     ) {
       throw new InvalidWagerReferenceError(
+        WagerReferenceFailureReason.Missing,
         'A declared external reference must be resolved before processing',
       );
     }
 
     if (!declaresReference && referenceTransactionId !== undefined) {
       throw new InvalidWagerReferenceError(
+        WagerReferenceFailureReason.ExternalTransactionMismatch,
         'A transaction without an external reference cannot link an internal reference',
       );
     }
@@ -352,6 +358,7 @@ export class WagerTransaction {
   ): asserts reference is WagerTransaction {
     if (reference === undefined) {
       throw new InvalidWagerReferenceError(
+        WagerReferenceFailureReason.Missing,
         'The referenced transaction is required',
       );
     }
@@ -360,31 +367,62 @@ export class WagerTransaction {
       this.referenceExternalTransactionId !== reference.externalTransactionId
     ) {
       throw new InvalidWagerReferenceError(
+        WagerReferenceFailureReason.ExternalTransactionMismatch,
         'The resolved transaction does not match the external reference',
       );
     }
 
     if (reference.id === this.id) {
-      throw new InvalidWagerReferenceError('A transaction cannot reference itself');
+      throw new InvalidWagerReferenceError(
+        WagerReferenceFailureReason.SelfReference,
+        'A transaction cannot reference itself',
+      );
     }
 
     if (reference.status !== WagerTransactionStatus.Processed) {
       throw new InvalidWagerReferenceError(
+        WagerReferenceFailureReason.NotProcessed,
         'The referenced transaction must be processed',
       );
     }
 
     const matchingFields = [
-      [this.providerId, reference.providerId, 'provider'],
-      [this.playerId, reference.playerId, 'player'],
-      [this.walletId, reference.walletId, 'wallet'],
-      [this.roundId, reference.roundId, 'round'],
-      [this.money.currency, reference.money.currency, 'currency'],
+      [
+        this.providerId,
+        reference.providerId,
+        'provider',
+        WagerReferenceFailureReason.ProviderMismatch,
+      ],
+      [
+        this.playerId,
+        reference.playerId,
+        'player',
+        WagerReferenceFailureReason.PlayerMismatch,
+      ],
+      [
+        this.walletId,
+        reference.walletId,
+        'wallet',
+        WagerReferenceFailureReason.WalletMismatch,
+      ],
+      [
+        this.roundId,
+        reference.roundId,
+        'round',
+        WagerReferenceFailureReason.RoundMismatch,
+      ],
+      [
+        this.money.currency,
+        reference.money.currency,
+        'currency',
+        WagerReferenceFailureReason.CurrencyMismatch,
+      ],
     ] as const;
 
-    for (const [currentValue, referenceValue, field] of matchingFields) {
+    for (const [currentValue, referenceValue, field, reason] of matchingFields) {
       if (currentValue !== referenceValue) {
         throw new InvalidWagerReferenceError(
+          reason,
           `The referenced transaction belongs to a different ${field}`,
         );
       }
@@ -396,6 +434,7 @@ export class WagerTransaction {
       !this.money.equals(reference.money)
     ) {
       throw new InvalidWagerReferenceError(
+        WagerReferenceFailureReason.AmountMismatch,
         'A reversal amount must equal the referenced transaction amount',
       );
     }
@@ -415,6 +454,7 @@ export class WagerTransaction {
 
     if (allowedKinds === undefined || !allowedKinds.includes(reference.kind)) {
       throw new InvalidWagerReferenceError(
+        WagerReferenceFailureReason.KindNotAllowed,
         `${this.kind} cannot reference ${reference.kind}`,
       );
     }

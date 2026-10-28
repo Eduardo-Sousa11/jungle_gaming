@@ -43,7 +43,22 @@ As transições permitidas são:
 
 `REFUND` e `ROLLBACK` exigem referência externa; `WIN` aceita referência opcional; `BET` e `LOSS` não aceitam referência. Antes de calcular o lançamento, o domínio verifica se a referência está `PROCESSED` e pertence ao mesmo provedor, jogador, wallet, moeda e rodada. Reversões também exigem o mesmo valor. `REFUND` gera crédito e `ROLLBACK` inverte a direção financeira de `BET`, `WIN` ou `REFUND`. `LOSS` não possui direção de ledger porque não altera saldo.
 
-A proteção persistente contra duas reversões do mesmo tipo e a aplicação dessas operações com lock por wallet pertencem ao caso de uso de processamento financeiro, que permanece como próxima etapa.
+## Matriz financeira das operações
+
+`WagerOperationProcessor` é um serviço de domínio sem dependências de framework ou persistência. Ele recebe a transação, a wallet e a referência já carregadas, aplica as regras abaixo e devolve o lançamento imutável quando houver mudança de saldo.
+
+| Operação | Efeito | Resultado no ledger |
+|---|---|---|
+| `BET` | débito; rejeita saldo insuficiente | um `DEBIT` quando processada |
+| `WIN` | crédito; referência a BET é opcional | um `CREDIT` |
+| `LOSS` | não altera saldo nem versão da wallet | nenhum lançamento |
+| `REFUND` | crédito do mesmo valor da BET referenciada | um `CREDIT` |
+| `ROLLBACK` de BET | desfaz o débito | um `CREDIT` |
+| `ROLLBACK` de WIN ou REFUND | desfaz o crédito; pode ser rejeitado se produzir saldo negativo | um `DEBIT` quando processado |
+
+Referências ausentes deixam a transação em `PENDING_REFERENCE`, sem alterar saldo. Referências incompatíveis, saldo insuficiente e reversões repetidas levam a `REJECTED`, com `failureCode` específico e sem ledger. Uma transação terminal é recusada antes de qualquer mutação da wallet.
+
+A informação de que já existe uma reversão do mesmo tipo entra no processador como contexto. A consulta e a proteção definitivas contra duplicidade, assim como a persistência atômica com lock por wallet, pertencem ao caso de uso transacional da próxima etapa.
 
 ## Garantias do banco de dados
 
@@ -73,4 +88,4 @@ A autenticação foi retirada das prioridades de implementação dos três dias 
 
 ## Limitações atuais
 
-A versão atual disponibiliza somente a criação de wallet. Consulta de wallet, paginação do ledger, processamento das operações de aposta, outbox e workers ainda permanecem como `TODO` no `IMPLEMENTATION_PLAN.md`.
+A versão atual disponibiliza como API somente a criação de wallet. A matriz de apostas já está implementada no domínio, mas sua API e persistência transacional, assim como consulta de wallet, paginação do ledger, outbox e workers, ainda permanecem como `TODO` no `IMPLEMENTATION_PLAN.md`.

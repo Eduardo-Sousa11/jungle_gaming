@@ -18,8 +18,25 @@ export class InvalidTransactionStateError extends Error {
   }
 }
 
+export enum WagerReferenceFailureReason {
+  Missing = 'MISSING',
+  ExternalTransactionMismatch = 'EXTERNAL_TRANSACTION_MISMATCH',
+  SelfReference = 'SELF_REFERENCE',
+  NotProcessed = 'NOT_PROCESSED',
+  ProviderMismatch = 'PROVIDER_MISMATCH',
+  PlayerMismatch = 'PLAYER_MISMATCH',
+  WalletMismatch = 'WALLET_MISMATCH',
+  RoundMismatch = 'ROUND_MISMATCH',
+  CurrencyMismatch = 'CURRENCY_MISMATCH',
+  AmountMismatch = 'AMOUNT_MISMATCH',
+  KindNotAllowed = 'KIND_NOT_ALLOWED',
+}
+
 export class InvalidWagerReferenceError extends Error {
-  constructor(message: string) {
+  constructor(
+    public readonly reason: WagerReferenceFailureReason,
+    message: string,
+  ) {
     super(message);
     this.name = 'InvalidWagerReferenceError';
   }

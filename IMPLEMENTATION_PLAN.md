@@ -12,7 +12,7 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 | Implementar `Money` independente de framework | Eliminatória | DONE | Testes unitários de precisão decimal aprovados |
 | Implementar Wallet e lançamento de abertura | Crítica | DONE | Criação atômica e versão iniciada em 1 |
 | Implementar máquina de estados da transação | Crítica | DONE | Transições terminais inválidas são impedidas |
-| Implementar BET, WIN, LOSS, REFUND e ROLLBACK | Eliminatória | TODO | Testes da matriz de operações aprovados |
+| Implementar BET, WIN, LOSS, REFUND e ROLLBACK | Eliminatória | DONE | Testes da matriz de operações aprovados |
 | Implementar idempotência persistente e lock da wallet | Eliminatória | TODO | Testes de duplicação e corrida aprovados |
 
 ## API, mensageria e resiliência
@@ -80,3 +80,15 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 - `PENDING_REFERENCE`: somente transações com referência declarada podem aguardar resolução.
 - `REFUND` e `ROLLBACK`: referência obrigatória e compatibilidade de contexto e valor validada.
 - Direções do ledger: BET débito, WIN/REFUND crédito, LOSS sem lançamento e ROLLBACK invertido.
+
+### Matriz financeira das operações — 28/10/2026
+
+- `npx --yes bun@1.4.4 run check`: aprovado, com 111 testes e 0 falhas.
+- `npx --yes bun@1.4.4 run build`: aprovado.
+- BET: débito processado com ledger e rejeição sem efeito para saldo insuficiente.
+- WIN: crédito com referência opcional a BET.
+- LOSS: processada sem alteração de saldo, versão ou ledger.
+- REFUND: crédito integral de uma BET processada.
+- ROLLBACK: inversão de BET, WIN ou REFUND, com código distinto quando o débito produziria saldo negativo.
+- Referência ausente: `PENDING_REFERENCE`; referência inválida ou repetida: `REJECTED` sem efeito financeiro.
+- Contexto financeiro: wallet, jogador, moeda, provedor, rodada, tipo, estado e valor da referência validados.
