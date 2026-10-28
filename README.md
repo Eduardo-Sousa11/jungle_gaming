@@ -1,6 +1,6 @@
 # Jungle Gaming — Processador Distribuído de Apostas
 
-Backend desenvolvido para o desafio técnico da Jungle Gaming. O projeto está sendo entregue em etapas pequenas e validadas. A versão atual contém a fundação da aplicação, a infraestrutura, o esquema financeiro inicial, o objeto de valor `Money` e a criação atômica de wallets.
+Backend desenvolvido para o desafio técnico da Jungle Gaming. O projeto está sendo entregue em etapas pequenas e validadas. A versão atual contém a fundação da aplicação, a infraestrutura, o esquema financeiro inicial, o objeto de valor `Money`, a criação atômica de wallets e a máquina de estados das transações de aposta.
 
 ## Etapa atual
 
@@ -13,9 +13,10 @@ Implementado:
 - restrições de banco para saldo não negativo, unicidade e imutabilidade do ledger;
 - `Money` independente de framework e com aritmética decimal exata;
 - criação de wallet com transação interna `OPENING` e lançamento no ledger;
+- máquina de estados de `WagerTransaction`, com estados terminais protegidos e validações de referência;
 - endpoints de liveness e readiness.
 
-O processamento de BET, WIN, LOSS, REFUND e ROLLBACK ainda não faz parte da versão atual. Consulte `IMPLEMENTATION_PLAN.md` para acompanhar a sequência de implementação.
+O domínio já representa BET, WIN, LOSS, REFUND e ROLLBACK, mas o caso de uso que persiste e aplica essas operações ao saldo ainda não faz parte da versão atual. Consulte `IMPLEMENTATION_PLAN.md` para acompanhar a sequência de implementação.
 
 ## Execução com Docker
 

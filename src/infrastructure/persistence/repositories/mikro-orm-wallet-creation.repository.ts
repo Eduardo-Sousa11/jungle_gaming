@@ -66,9 +66,9 @@ export class MikroOrmWalletCreationRepository
               },
               pendingReferenceAttempts: 0,
               nextReferenceAttemptAt: null,
-              processedAt: opening.processedAt,
+              processedAt: opening.processedAt ?? null,
               createdAt: opening.createdAt,
-              updatedAt: opening.processedAt,
+              updatedAt: opening.processedAt ?? opening.createdAt,
             },
           );
 

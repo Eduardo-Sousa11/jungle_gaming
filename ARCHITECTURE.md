@@ -25,6 +25,26 @@ O adaptador MikroORM persiste wallet, transação e ledger em uma única transa�
 
 O domínio utiliza `Money`; os registros de persistência convertem os valores somente na borda para strings `NUMERIC(20, 2)`. Entidades específicas do ORM não atravessam para as camadas de domínio ou aplicação.
 
+## Máquina de estados das transações
+
+Transações externas são criadas por `WagerTransaction.create` no estado `PENDING`. A transação interna `OPENING` possui uma factory separada, nasce em `PROCESSED` e não pode ser submetida pela API ou pela fila. A factory `rehydrate` apenas reconstrói o estado persistido, sem repetir validações de transição.
+
+As transições permitidas são:
+
+| Estado atual | Próximos estados permitidos |
+|---|---|
+| `PENDING` | `PENDING_REFERENCE`, `PROCESSED`, `REJECTED`, `FAILED` |
+| `PENDING_REFERENCE` | `PROCESSED`, `REJECTED`, `FAILED` |
+| `PROCESSED` | nenhum |
+| `REJECTED` | nenhum |
+| `FAILED` | nenhum |
+
+`PROCESSED`, `REJECTED` e `FAILED` são terminais. Qualquer tentativa de alterar uma transação terminal lança `InvalidTransactionStateError`. Rejeições e falhas carregam um código estável e legível por máquina; a taxonomia cobre saldo insuficiente, divergências de wallet, jogador, moeda, provedor ou rodada, referência ausente ou inválida, reversão duplicada, reversão que produziria saldo negativo e falha permanente de infraestrutura.
+
+`REFUND` e `ROLLBACK` exigem referência externa; `WIN` aceita referência opcional; `BET` e `LOSS` não aceitam referência. Antes de calcular o lançamento, o domínio verifica se a referência está `PROCESSED` e pertence ao mesmo provedor, jogador, wallet, moeda e rodada. Reversões também exigem o mesmo valor. `REFUND` gera crédito e `ROLLBACK` inverte a direção financeira de `BET`, `WIN` ou `REFUND`. `LOSS` não possui direção de ledger porque não altera saldo.
+
+A proteção persistente contra duas reversões do mesmo tipo e a aplicação dessas operações com lock por wallet pertencem ao caso de uso de processamento financeiro, que permanece como próxima etapa.
+
 ## Garantias do banco de dados
 
 O schema inicial estabelece as cinco tabelas obrigatórias:
