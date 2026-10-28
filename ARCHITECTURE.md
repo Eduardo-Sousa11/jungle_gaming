@@ -17,6 +17,14 @@ Valores monetários entram e saem do sistema como strings decimais exatas com du
 
 `Money.from` rejeita entradas externas negativas, notação científica, escala não canônica, moedas ISO-4217 não suportadas e valores que excedem a precisão do banco. A aritmética interna pode produzir um `Money` negativo, necessário para operações como diferenças de reconciliação e `negate()`.
 
+## Criação de wallet
+
+`CreateWalletUseCase` não depende de NestJS nem do MikroORM. Ele cria o agregado `Wallet` com versão inicial `1`. Quando o saldo inicial é positivo, também cria uma `WagerTransaction` interna do tipo `OPENING` e um `WalletLedgerEntry` de crédito, partindo de `0.00` até o saldo informado.
+
+O adaptador MikroORM persiste wallet, transação e ledger em uma única transação PostgreSQL. Os inserts são executados na ordem das chaves estrangeiras e qualquer falha provoca rollback integral. A constraint única `(player_id, currency)` é a garantia definitiva contra duas wallets para o mesmo jogador e moeda.
+
+O domínio utiliza `Money`; os registros de persistência convertem os valores somente na borda para strings `NUMERIC(20, 2)`. Entidades específicas do ORM não atravessam para as camadas de domínio ou aplicação.
+
 ## Garantias do banco de dados
 
 O schema inicial estabelece as cinco tabelas obrigatórias:
@@ -45,4 +53,4 @@ A autenticação foi retirada das prioridades de implementação dos três dias 
 
 ## Limitações atuais
 
-Esta etapa de fundação ainda não disponibiliza endpoints de wallet ou transações, não executa workers e não processa operações financeiras. Essas funcionalidades permanecem explicitamente como `TODO` no `IMPLEMENTATION_PLAN.md`.
+A versão atual disponibiliza somente a criação de wallet. Consulta de wallet, paginação do ledger, processamento das operações de aposta, outbox e workers ainda permanecem como `TODO` no `IMPLEMENTATION_PLAN.md`.
