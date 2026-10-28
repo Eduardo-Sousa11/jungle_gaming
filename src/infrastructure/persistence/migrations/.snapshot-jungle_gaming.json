@@ -519,7 +519,7 @@
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "unique": true,
+          "unique": false,
           "length": 255,
           "precision": null,
           "scale": null,
@@ -801,16 +801,6 @@
       "indexes": [
         {
           "columnNames": [
-            "idempotency_key"
-          ],
-          "composite": false,
-          "constraint": true,
-          "keyName": "wager_transactions_idempotency_key_unique",
-          "primary": false,
-          "unique": true
-        },
-        {
-          "columnNames": [
             "next_reference_attempt_at",
             "id"
           ],
@@ -851,6 +841,17 @@
           "composite": true,
           "constraint": true,
           "keyName": "wager_transactions_provider_external_unique",
+          "primary": false,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "provider_id",
+            "idempotency_key"
+          ],
+          "composite": true,
+          "constraint": true,
+          "keyName": "wager_transactions_provider_idempotency_unique",
           "primary": false,
           "unique": true
         },

@@ -5,7 +5,7 @@
 O serviço segue quatro áreas orientadas por dependências:
 
 - **Domain** contém objetos de valor, entidades e invariantes financeiros. Não possui imports do NestJS, ORM, banco de dados ou AWS.
-- **Application** conterá casos de uso e portas. HTTP e SQS chamarão o mesmo caso de uso de processamento de apostas.
+- **Application** contém casos de uso e portas. HTTP e SQS chamarão o mesmo caso de uso de processamento de apostas.
 - **Infrastructure** contém MikroORM, PostgreSQL, SQS, migrations, workers e adaptadores operacionais.
 - **Presentation** contém contratos HTTP, validações e mapeamento de erros.
 
@@ -58,7 +58,7 @@ As transições permitidas são:
 
 Referências ausentes deixam a transação em `PENDING_REFERENCE`, sem alterar saldo. Referências incompatíveis, saldo insuficiente e reversões repetidas levam a `REJECTED`, com `failureCode` específico e sem ledger. Uma transação terminal é recusada antes de qualquer mutação da wallet.
 
-A informação de que já existe uma reversão do mesmo tipo entra no processador como contexto. A consulta e a proteção definitivas contra duplicidade, assim como a persistência atômica com lock por wallet, pertencem ao caso de uso transacional da próxima etapa.
+A informação de que já existe uma reversão do mesmo tipo entra no processador como contexto. `ProcessWagerTransactionUseCase` obtém essa informação sob o lock da wallet, enquanto o índice único parcial do PostgreSQL permanece como proteção definitiva contra a corrida entre reversões.
 
 ## Garantias do banco de dados
 
@@ -70,15 +70,21 @@ O schema inicial estabelece as cinco tabelas obrigatórias:
 - `inbox_messages`;
 - `outbox_messages`.
 
-O PostgreSQL garante saldo não negativo nas wallets, unicidade da idempotência, unicidade das transações do provedor, aritmética do ledger e no máximo um lançamento por wallet/transação. Um trigger rejeita qualquer `UPDATE` ou `DELETE` no ledger.
+O PostgreSQL garante saldo não negativo nas wallets, idempotência única por `(provider_id, idempotency_key)`, transação externa única por `(provider_id, external_transaction_id)`, no máximo uma reversão processada de cada tipo, aritmética do ledger e no máximo um lançamento por wallet/transação. Um trigger rejeita qualquer `UPDATE` ou `DELETE` no ledger.
 
 O registro da transação inclui um snapshot da resposta para que um replay idempotente retorne o resultado originalmente observado, em vez de um saldo posterior da wallet.
 
-## Concorrência e semântica de entrega planejadas
+## Concorrência e idempotência
 
-A aplicação adquirirá um lock pessimista na linha da wallet afetada. Quando uma operação precisar de mais de um lock, eles serão adquiridos em uma ordem estável por ID da wallet. Não haverá lock financeiro global.
+`MikroOrmWagerProcessingRepository` abre uma transação SQL e adquire lock pessimista `FOR UPDATE` somente na linha da wallet afetada. Não existe lock financeiro global, portanto wallets distintas continuam processando em paralelo.
 
-Alterações financeiras, ledger, inbox e outbox serão confirmados em uma única transação PostgreSQL. A entrega da outbox será pelo menos uma vez (*at-least-once*): publishers concorrentes reservarão registros prontos com lease/`SKIP LOCKED`. Uma falha após a publicação e antes da confirmação do registro pode duplicar um evento; por isso, IDs de eventos e consumidores devem ser idempotentes.
+O caso de uso consulta idempotência e ID externo antes do lock para responder replays rapidamente e repete as consultas depois do lock para fechar a janela de concorrência. As constraints do banco são a garantia final. Se duas transações em wallets diferentes disputarem a mesma chave, o adaptador converte a violação de unicidade em uma única repetição controlada, que então retorna replay ou conflito.
+
+Wallet, `WagerTransaction` e `WalletLedgerEntry` são persistidos na mesma transação. Uma falha no ledger reverte também o insert da transação e a atualização do saldo. O snapshot da resposta armazena o saldo observado no processamento; por isso um replay posterior não devolve o saldo atual da wallet.
+
+## Semântica de entrega planejada
+
+Quando inbox e outbox forem implementados, eles participarão da mesma transação PostgreSQL das alterações financeiras e do ledger. A entrega da outbox será pelo menos uma vez (*at-least-once*): publishers concorrentes reservarão registros prontos com lease/`SKIP LOCKED`. Uma falha após a publicação e antes da confirmação do registro pode duplicar um evento; por isso, IDs de eventos e consumidores devem ser idempotentes.
 
 O agrupamento do SQS FIFO é apenas uma otimização. Constraints e locks do PostgreSQL continuam sendo a fonte de correção.
 
@@ -88,4 +94,4 @@ A autenticação foi retirada das prioridades de implementação dos três dias 
 
 ## Limitações atuais
 
-A versão atual disponibiliza como API somente a criação de wallet. A matriz de apostas já está implementada no domínio, mas sua API e persistência transacional, assim como consulta de wallet, paginação do ledger, outbox e workers, ainda permanecem como `TODO` no `IMPLEMENTATION_PLAN.md`.
+A versão atual disponibiliza como API somente a criação de wallet. O processamento de apostas já possui caso de uso e persistência transacional, mas sua API, assim como consulta de wallet, paginação do ledger, inbox, outbox e workers, ainda permanece como `TODO` no `IMPLEMENTATION_PLAN.md`.

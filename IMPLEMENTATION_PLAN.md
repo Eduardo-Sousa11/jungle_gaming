@@ -13,7 +13,7 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 | Implementar Wallet e lançamento de abertura | Crítica | DONE | Criação atômica e versão iniciada em 1 |
 | Implementar máquina de estados da transação | Crítica | DONE | Transições terminais inválidas são impedidas |
 | Implementar BET, WIN, LOSS, REFUND e ROLLBACK | Eliminatória | DONE | Testes da matriz de operações aprovados |
-| Implementar idempotência persistente e lock da wallet | Eliminatória | TODO | Testes de duplicação e corrida aprovados |
+| Implementar idempotência persistente e lock da wallet | Eliminatória | DONE | Testes de duplicação e corrida aprovados |
 
 ## API, mensageria e resiliência
 
@@ -32,8 +32,8 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 | Tarefa | Prioridade | Status | Critério de aceite |
 |---|---|---|---|
 | Criar suíte de integração com PostgreSQL/LocalStack | Eliminatória | TODO | Testes utilizam containers reais |
-| Testar cinquenta requisições duplicadas concorrentes | Eliminatória | TODO | Exatamente um efeito financeiro |
-| Testar corrida de saldo insuficiente na mesma wallet | Eliminatória | TODO | Uma processada, uma rejeitada e saldo 20,00 |
+| Testar cinquenta requisições duplicadas concorrentes | Eliminatória | DONE | Exatamente um efeito financeiro |
+| Testar corrida de saldo insuficiente na mesma wallet | Eliminatória | DONE | Uma processada, uma rejeitada e saldo 20,00 |
 | Testar três instâncias da aplicação | Eliminatória | TODO | Consistência distribuída preservada |
 | Testar recuperação de falhas do consumer e publisher | Crítica | TODO | Reinicialização converge sem perder efeitos |
 | Executar auditoria final de reconciliação | Crítica | TODO | Toda wallet equivale ao ledger reconstruído |
@@ -42,7 +42,7 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 
 ## Riscos da etapa atual
 
-- O Bun não está instalado no host; por isso, todos os comandos Bun utilizam a imagem Docker com versão fixada.
+- O Bun não está instalado no host; por isso, os comandos utilizam a imagem Docker ou execução efêmera da versão fixada 1.4.4.
 - Testes de integração devem evitar suposições de tempo e utilizar verificações explícitas de prontidão.
 
 ## Registro de validação
@@ -92,3 +92,16 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 - ROLLBACK: inversão de BET, WIN ou REFUND, com código distinto quando o débito produziria saldo negativo.
 - Referência ausente: `PENDING_REFERENCE`; referência inválida ou repetida: `REJECTED` sem efeito financeiro.
 - Contexto financeiro: wallet, jogador, moeda, provedor, rodada, tipo, estado e valor da referência validados.
+
+### Idempotência persistente e lock por wallet — 28/10/2026
+
+- `npx --yes bun@1.4.4 run check`: aprovado, com 122 testes e 0 falhas.
+- `npx --yes bun@1.4.4 run build`: aprovado.
+- `bun run test:integration`: 11 aprovados e 0 falhas no PostgreSQL 17 real.
+- Migration de idempotência por provedor: ciclo `up -> down -> up` aprovado.
+- Cinquenta requisições duplicadas concorrentes: uma transação, um débito e 49 replays.
+- Duas BETs concorrentes de `80.00` sobre saldo `100.00`: uma processada, uma rejeitada, saldo final `20.00` e um único débito.
+- Duas devoluções concorrentes da mesma BET: uma processada e uma rejeitada como `REFERENCE_ALREADY_REVERSED`.
+- Replay após movimentos posteriores: devolvido o saldo original armazenado no snapshot.
+- Falha ao persistir ledger: insert da transação e atualização da wallet revertidos integralmente.
+- Lock pessimista isolado na wallet; nenhuma trava financeira global utilizada.

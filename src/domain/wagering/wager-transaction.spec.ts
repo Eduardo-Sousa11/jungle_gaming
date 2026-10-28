@@ -86,6 +86,15 @@ describe('WagerTransaction creation', () => {
     expect(withReference.referenceExternalTransactionId).toBe('bet-1');
   });
 
+  test('prevents a transaction from referencing its own external identifier', () => {
+    expect(() =>
+      createTransaction({
+        kind: WagerTransactionKind.Win,
+        referenceExternalTransactionId: BASE_PROPS.externalTransactionId,
+      }),
+    ).toThrow(InvalidWagerTransactionError);
+  });
+
   test('rejects a zero-value wagering transaction', () => {
     expect(() =>
       createTransaction({ money: Money.zero('BRL') }),
