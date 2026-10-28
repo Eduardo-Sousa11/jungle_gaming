@@ -11,7 +11,7 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 | Configurar MikroORM e migração inicial reversível | Crítica | DONE | Ciclo de migração up/down/up aprovado |
 | Implementar `Money` independente de framework | Eliminatória | DONE | Testes unitários de precisão decimal aprovados |
 | Implementar Wallet e lançamento de abertura | Crítica | DONE | Criação atômica e versão iniciada em 1 |
-| Implementar máquina de estados da transação | Crítica | TODO | Transições terminais inválidas são impedidas |
+| Implementar máquina de estados da transação | Crítica | DONE | Transições terminais inválidas são impedidas |
 | Implementar BET, WIN, LOSS, REFUND e ROLLBACK | Eliminatória | TODO | Testes da matriz de operações aprovados |
 | Implementar idempotência persistente e lock da wallet | Eliminatória | TODO | Testes de duplicação e corrida aprovados |
 
@@ -70,3 +70,13 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 - Duplicidade de jogador/moeda: HTTP 409 e código `WALLET_ALREADY_EXISTS`.
 - Payload inválido: HTTP 400.
 - Reconstrução pelo ledger: saldo armazenado `100.00`, saldo calculado `100.00`.
+
+### Máquina de estados da transação — 27/10/2026
+
+- `npx --yes bun@1.4.4 run check`: aprovado, com 81 testes e 0 falhas.
+- `npx --yes bun@1.4.4 run build`: aprovado.
+- Factory externa: transações iniciam em `PENDING` e `OPENING` externo é rejeitado.
+- Estados terminais `PROCESSED`, `REJECTED` e `FAILED`: novas transições impedidas.
+- `PENDING_REFERENCE`: somente transações com referência declarada podem aguardar resolução.
+- `REFUND` e `ROLLBACK`: referência obrigatória e compatibilidade de contexto e valor validada.
+- Direções do ledger: BET débito, WIN/REFUND crédito, LOSS sem lançamento e ROLLBACK invertido.
