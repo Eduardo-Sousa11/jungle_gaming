@@ -88,10 +88,18 @@ Quando inbox e outbox forem implementados, eles participarão da mesma transaç�
 
 O agrupamento do SQS FIFO é apenas uma otimização. Constraints e locks do PostgreSQL continuam sendo a fonte de correção.
 
+## API HTTP
+
+`WageringController` recebe o header obrigatório `Idempotency-Key`, valida o DTO e delega integralmente ao `ProcessWagerTransactionUseCase`. O controller não contém regra financeira. O futuro consumer SQS chamará o mesmo caso de uso.
+
+Os resultados são diferenciados por status HTTP: processada `200`, referência pendente `202`, payload inválido `400`, recurso ausente `404`, conflito persistente `409`, rejeição de negócio `422` e indisponibilidade `503`. Erros automáticos de DTO seguem o envelope com código `VALIDATION_ERROR`; os demais erros expõem códigos estáveis específicos.
+
+As consultas de wallet e transação utilizam repositórios de leitura que retornam views da camada de aplicação. Entidades do MikroORM não atravessam a fronteira HTTP. A paginação do ledger e a reconciliação financeira permanecem em uma etapa separada.
+
 ## Decisão sobre autenticação
 
 A autenticação foi retirada das prioridades de implementação dos três dias porque o desafio oficial não atribui pontos a ela. Os endpoints de saúde permanecem públicos e o SQS é tratado como canal interno. A camada HTTP manterá um ponto de extensão de guard para um provedor OIDC externo, como Keycloak. Nenhum sistema local de senhas será desenvolvido.
 
 ## Limitações atuais
 
-A versão atual disponibiliza como API somente a criação de wallet. O processamento de apostas já possui caso de uso e persistência transacional, mas sua API, assim como consulta de wallet, paginação do ledger, inbox, outbox e workers, ainda permanece como `TODO` no `IMPLEMENTATION_PLAN.md`.
+A versão atual disponibiliza criação e consulta de wallet, submissão de apostas e consultas de transação. Paginação do ledger, reconciliação, inbox, outbox e workers ainda permanecem como `TODO` no `IMPLEMENTATION_PLAN.md`.

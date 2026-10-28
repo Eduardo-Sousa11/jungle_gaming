@@ -1,9 +1,9 @@
 import 'reflect-metadata';
 
-import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
+import { createApplicationValidationPipe } from './presentation/http/shared/application-validation.pipe';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, {
@@ -11,13 +11,7 @@ async function bootstrap(): Promise<void> {
   });
 
   app.enableShutdownHooks();
-  app.useGlobalPipes(
-    new ValidationPipe({
-      forbidNonWhitelisted: true,
-      transform: true,
-      whitelist: true,
-    }),
-  );
+  app.useGlobalPipes(createApplicationValidationPipe());
 
   const port = process.env.APP_PORT ?? '3000';
   await app.listen(port, '0.0.0.0');

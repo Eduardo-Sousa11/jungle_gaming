@@ -19,7 +19,7 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 
 | Tarefa | Prioridade | Status | Critério de aceite |
 |---|---|---|---|
-| Implementar endpoints HTTP obrigatórios | Alta | TODO | Testes de contrato aprovados |
+| Implementar endpoints HTTP de submissão e consulta | Alta | DONE | Testes de contrato aprovados |
 | Implementar cursor do ledger e reconciliação | Alta | TODO | Paginação estável e reconstrução exata |
 | Implementar consumer SQS e inbox transacional | Crítica | TODO | Redelivery não duplica efeitos |
 | Implementar publisher da outbox transacional | Eliminatória | TODO | Falha após o commit não perde eventos |
@@ -105,3 +105,15 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 - Replay após movimentos posteriores: devolvido o saldo original armazenado no snapshot.
 - Falha ao persistir ledger: insert da transação e atualização da wallet revertidos integralmente.
 - Lock pessimista isolado na wallet; nenhuma trava financeira global utilizada.
+
+### API HTTP de submissão e consulta — 28/10/2026
+
+- `npx --yes bun@1.4.4 run check`: aprovado, com 122 testes e 0 falhas.
+- `npx --yes bun@1.4.4 run build`: aprovado.
+- `bun run test:integration`: 18 aprovados e 0 falhas no PostgreSQL 17 real.
+- `POST /wagering/transactions`: processamento, replay, conflito, rejeição e referência pendente validados por HTTP real.
+- `GET /wallets/:walletId`: saldo, versão e datas persistidas retornados.
+- `GET /wagering/transactions/:transactionId`: consulta pelo identificador interno.
+- `GET /providers/:providerId/wagering/transactions/:externalTransactionId`: consulta pela identidade do provedor.
+- Validação automática: envelope `VALIDATION_ERROR`; `Idempotency-Key` ausente: `IDEMPOTENCY_KEY_REQUIRED`.
+- Status distintos para payload inválido, ausência, conflito, pendência, rejeição e indisponibilidade.

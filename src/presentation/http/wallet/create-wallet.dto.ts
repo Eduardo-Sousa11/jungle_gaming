@@ -1,20 +1,7 @@
 import { Type } from 'class-transformer';
-import {
-  IsString,
-  IsUUID,
-  Matches,
-  ValidateNested,
-} from 'class-validator';
+import { IsUUID, ValidateNested } from 'class-validator';
 
-export class MoneyDto {
-  @IsString()
-  @Matches(/^(?:0|[1-9]\d*)\.\d{2}$/)
-  declare amount: string;
-
-  @IsString()
-  @Matches(/^[A-Z]{3}$/)
-  declare currency: string;
-}
+import { MoneyDto } from '../shared/money.dto';
 
 export class CreateWalletDto {
   @IsUUID('all')
