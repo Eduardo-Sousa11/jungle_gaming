@@ -11,6 +11,11 @@ import {
   type PayloadHasher,
 } from '../../../application/shared/payload-hasher.port';
 import { CreateWalletUseCase } from '../../../application/wallet/create-wallet/create-wallet.use-case';
+import { GetWalletUseCase } from '../../../application/wallet/get-wallet/get-wallet.use-case';
+import {
+  WALLET_QUERY_REPOSITORY,
+  type WalletQueryRepository,
+} from '../../../application/wallet/get-wallet/wallet-query.repository';
 import {
   WALLET_CREATION_REPOSITORY,
   type WalletCreationRepository,
@@ -19,6 +24,7 @@ import { WalletLedgerEntryRecord } from '../../../infrastructure/persistence/ent
 import { WalletRecord } from '../../../infrastructure/persistence/entities/wallet.record';
 import { WagerTransactionRecord } from '../../../infrastructure/persistence/entities/wager-transaction.record';
 import { MikroOrmWalletCreationRepository } from '../../../infrastructure/persistence/repositories/mikro-orm-wallet-creation.repository';
+import { MikroOrmWalletQueryRepository } from '../../../infrastructure/persistence/repositories/mikro-orm-http-query.repositories';
 import { Sha256PayloadHasher } from '../../../infrastructure/shared/sha256-payload-hasher';
 import { SystemClock } from '../../../infrastructure/shared/system-clock';
 import { UuidGenerator } from '../../../infrastructure/shared/uuid-generator';
@@ -37,6 +43,10 @@ import { WalletController } from './wallet.controller';
     {
       provide: WALLET_CREATION_REPOSITORY,
       useClass: MikroOrmWalletCreationRepository,
+    },
+    {
+      provide: WALLET_QUERY_REPOSITORY,
+      useClass: MikroOrmWalletQueryRepository,
     },
     {
       provide: ID_GENERATOR,
@@ -70,6 +80,12 @@ import { WalletController } from './wallet.controller';
           clock,
           payloadHasher,
         ),
+    },
+    {
+      inject: [WALLET_QUERY_REPOSITORY],
+      provide: GetWalletUseCase,
+      useFactory: (repository: WalletQueryRepository): GetWalletUseCase =>
+        new GetWalletUseCase(repository),
     },
   ],
 })

@@ -16,9 +16,10 @@ Implementado:
 - máquina de estados de `WagerTransaction`, com estados terminais protegidos e validações de referência;
 - regras de domínio de BET, WIN, LOSS, REFUND e ROLLBACK, incluindo saldo, ledger e rejeições auditáveis;
 - `ProcessWagerTransactionUseCase` com hash canônico, replay persistente, lock pessimista por wallet e transação SQL atômica;
+- endpoints HTTP para submissão de apostas e consultas de wallet e transação;
 - endpoints de liveness e readiness.
 
-O processamento de apostas já está implementado nas camadas de aplicação e infraestrutura, mas ainda não foi exposto por HTTP ou SQS. Inbox, outbox e publicação de eventos pertencem às próximas etapas. Consulte `IMPLEMENTATION_PLAN.md` para acompanhar a sequência de implementação.
+O processamento de apostas está disponível por HTTP. A entrada SQS, inbox, outbox e publicação de eventos pertencem às próximas etapas. Consulte `IMPLEMENTATION_PLAN.md` para acompanhar a sequência de implementação.
 
 ## Execução com Docker
 
@@ -99,7 +100,54 @@ Quando o saldo inicial é maior que zero, wallet, transação `OPENING` e lança
 
 Wallet, transação e ledger são confirmados na mesma transação PostgreSQL. A unicidade de `(provider_id, idempotency_key)` e `(provider_id, external_transaction_id)` é garantida pelo schema. Repetições idênticas recebem o snapshot da resposta original com `idempotentReplay: true`; a mesma chave com payload diferente gera conflito.
 
-O endpoint HTTP ainda não está disponível. Ele será apenas um adaptador para esse mesmo caso de uso, que também será reutilizado pelo consumer SQS.
+### Submeter uma aposta
+
+```bash
+curl -X POST http://localhost:3000/wagering/transactions \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: provider-a:transaction-123' \
+  --data '{
+    "providerId": "provider-a",
+    "externalTransactionId": "transaction-123",
+    "playerId": "0192f28f-5dc0-7d58-bdb2-814ad6a0f4a1",
+    "walletId": "0192f291-27dd-7d3f-8071-5f8685deef37",
+    "roundId": "round-987",
+    "gameId": "fortune-chimp",
+    "kind": "BET",
+    "money": { "amount": "25.00", "currency": "BRL" }
+  }'
+```
+
+Resposta processada:
+
+```json
+{
+  "transactionId": "0192f298-345e-7e38-af88-e43f851a819d",
+  "status": "PROCESSED",
+  "balance": { "amount": "975.00", "currency": "BRL" },
+  "idempotentReplay": false
+}
+```
+
+Mapeamento dos resultados:
+
+- HTTP `200`: processada ou replay de transação processada;
+- HTTP `202`: referência ainda não encontrada;
+- HTTP `400`: header obrigatório ou payload inválido;
+- HTTP `404`: wallet ou transação não encontrada;
+- HTTP `409`: conflito de idempotência ou de transação externa;
+- HTTP `422`: rejeição por regra de negócio;
+- HTTP `503`: falha permanente ou esgotamento do retry de concorrência.
+
+### Consultas disponíveis
+
+```http
+GET /wallets/:walletId
+GET /wagering/transactions/:transactionId
+GET /providers/:providerId/wagering/transactions/:externalTransactionId
+```
+
+Payloads inválidos utilizam o código estável `VALIDATION_ERROR`. O consumer SQS reutilizará o mesmo `ProcessWagerTransactionUseCase` da API.
 
 ## Migrações
 
