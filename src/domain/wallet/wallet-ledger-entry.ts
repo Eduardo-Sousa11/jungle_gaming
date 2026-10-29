@@ -34,12 +34,12 @@ export class WalletLedgerEntry {
       props.transactionId.length === 0
     ) {
       throw new InvalidLedgerEntryError(
-        'Ledger, wallet and transaction identifiers are required',
+        'Os identificadores do ledger, da carteira e da transação são obrigatórios',
       );
     }
 
     if (!props.money.isPositive()) {
-      throw new InvalidLedgerEntryError('Ledger amount must be greater than zero');
+      throw new InvalidLedgerEntryError('O valor do ledger deve ser maior que zero');
     }
 
     const entry = new WalletLedgerEntry(
@@ -55,7 +55,7 @@ export class WalletLedgerEntry {
 
     if (!entry.isBalanced()) {
       throw new InvalidLedgerEntryError(
-        'Ledger balances do not match its direction and amount',
+        'Os saldos do ledger não correspondem à direção e ao valor do lançamento',
       );
     }
 

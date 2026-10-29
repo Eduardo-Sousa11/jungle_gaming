@@ -36,7 +36,7 @@ export abstract class IntegrationEvent<T extends object> {
       props.correlationId.trim().length === 0 ||
       Number.isNaN(props.occurredAt.getTime())
     ) {
-      throw new Error('Integration event identifiers and date are required');
+      throw new Error('Os identificadores e a data do evento de integração são obrigatórios');
     }
     this.eventId = props.eventId;
     this.aggregateId = props.aggregateId;

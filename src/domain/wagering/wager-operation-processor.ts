@@ -144,7 +144,7 @@ export class WagerOperationProcessor {
   ): void {
     if (transaction.kind === WagerTransactionKind.Opening) {
       throw new InvalidWagerTransactionError(
-        'OPENING is created only by the wallet opening flow',
+        'OPENING é criada somente pelo fluxo de abertura da carteira',
       );
     }
 
@@ -158,13 +158,13 @@ export class WagerOperationProcessor {
 
     if (Number.isNaN(at.getTime())) {
       throw new InvalidWagerTransactionError(
-        'A valid operation processing date is required',
+        'Uma data válida de processamento da operação é obrigatória',
       );
     }
 
     if (transaction.affectsBalance() && ledgerEntryId.trim().length === 0) {
       throw new InvalidWagerTransactionError(
-        'A ledger entry identifier is required for a financial operation',
+        'Um identificador de lançamento no ledger é obrigatório para uma operação financeira',
       );
     }
   }

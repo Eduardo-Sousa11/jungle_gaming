@@ -28,7 +28,7 @@ class CapturingReconciliationMonitor implements WalletReconciliationMonitor {
 }
 
 describe('ReconcileWalletUseCase', () => {
-  test('rebuilds the balance from exact credit and debit totals', async () => {
+  test('reconstrói o saldo a partir dos totais exatos de crédito e débito', async () => {
     const monitor = new CapturingReconciliationMonitor();
     const useCase = new ReconcileWalletUseCase(
       new FixedReconciliationRepository({
@@ -55,7 +55,7 @@ describe('ReconcileWalletUseCase', () => {
     expect(monitor.divergences).toHaveLength(0);
   });
 
-  test('signals but does not correct a financial divergence', async () => {
+  test('sinaliza, mas não corrige, uma divergência financeira', async () => {
     const monitor = new CapturingReconciliationMonitor();
     const useCase = new ReconcileWalletUseCase(
       new FixedReconciliationRepository({
@@ -77,7 +77,7 @@ describe('ReconcileWalletUseCase', () => {
     expect(monitor.divergences).toEqual([result]);
   });
 
-  test('reports a missing wallet', async () => {
+  test('informa uma carteira inexistente', async () => {
     const useCase = new ReconcileWalletUseCase(
       new FixedReconciliationRepository(),
       new CapturingReconciliationMonitor(),

@@ -94,7 +94,7 @@ export class OutboxPublisher
         }
       } catch (error) {
         this.logger.error({
-          event: 'outbox_batch_failed',
+          event: 'falha_no_lote_da_outbox',
           workerId: this.workerId,
           errorCode: errorCode(error),
         });
@@ -123,7 +123,7 @@ export class OutboxPublisher
         eventType: message.eventType,
       });
       this.logger.log({
-        event: 'outbox_event_published',
+        event: 'evento_da_outbox_publicado',
         eventId: message.id,
         eventType: message.eventType,
         aggregateId: message.aggregateId,
@@ -139,7 +139,7 @@ export class OutboxPublisher
         errorCode: errorCode(error),
       });
       this.logger.warn({
-        event: 'outbox_event_retry_scheduled',
+        event: 'nova_tentativa_da_outbox_agendada',
         eventId: message.id,
         eventType: message.eventType,
         attempts,
@@ -156,7 +156,7 @@ export class OutboxPublisher
       new GetQueueUrlCommand({ QueueName: this.queueName }),
     );
     if (result.QueueUrl === undefined) {
-      throw new Error(`SQS queue ${this.queueName} has no URL`);
+      throw new Error(`A fila SQS ${this.queueName} não possui URL`);
     }
     this.queueUrl = result.QueueUrl;
     return result.QueueUrl;

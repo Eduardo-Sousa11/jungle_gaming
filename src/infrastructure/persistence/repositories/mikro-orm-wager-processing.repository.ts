@@ -217,7 +217,7 @@ class MikroOrmWagerProcessingSession implements WagerProcessingSession {
       const walletRecord = this.lockedWalletRecords.get(result.wallet.id);
       if (walletRecord === undefined) {
         throw new Error(
-          'Cannot persist a wallet that was not locked in this session',
+          'Não é possível persistir uma carteira que não foi bloqueada nesta sessão',
         );
       }
 
@@ -305,7 +305,7 @@ class MikroOrmWagerProcessingSession implements WagerProcessingSession {
     value: Readonly<Record<string, unknown>> | null | undefined,
   ): WagerResponseSnapshot {
     if (value === null || value === undefined) {
-      throw new Error('Persisted wager transaction has no response snapshot');
+      throw new Error('A transação de aposta persistida não possui snapshot de resposta');
     }
 
     const balance = value['balance'];
@@ -330,7 +330,7 @@ class MikroOrmWagerProcessingSession implements WagerProcessingSession {
             failureCode as WagerTransactionFailureCode,
           )))
     ) {
-      throw new Error('Persisted wager response snapshot is invalid');
+      throw new Error('O snapshot de resposta da aposta persistida é inválido');
     }
 
     const normalizedBalance = Money.from({

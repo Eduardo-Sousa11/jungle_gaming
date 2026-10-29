@@ -7,7 +7,7 @@ export class InvalidMoneyError extends Error {
 
 export class CurrencyMismatchError extends Error {
   constructor(leftCurrency: string, rightCurrency: string) {
-    super(`Currency mismatch: ${leftCurrency} and ${rightCurrency}`);
+    super(`Moedas incompatíveis: ${leftCurrency} e ${rightCurrency}`);
     this.name = 'CurrencyMismatchError';
   }
 }

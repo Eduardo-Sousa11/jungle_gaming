@@ -47,7 +47,7 @@ export class ResolvePendingReferencesUseCase {
       const wallet = await session.lockWallet(transaction.walletId);
       const referenceExternalId = transaction.referenceExternalTransactionId;
       if (referenceExternalId === undefined) {
-        throw new Error('Pending reference transaction has no external reference');
+        throw new Error('A transação com referência pendente não possui referência externa');
       }
       const reference = await session.findReference(
         transaction.providerId,

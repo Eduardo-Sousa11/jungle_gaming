@@ -9,7 +9,6 @@ import {
   HttpStatus,
   NotFoundException,
   Param,
-  ParseUUIDPipe,
   Post,
   Res,
   ServiceUnavailableException,
@@ -39,6 +38,7 @@ import { InvalidWagerTransactionError } from '../../../domain/wagering/wager-tra
 import { WagerTransactionStatus } from '../../../domain/wagering/wager-transaction';
 import { ProcessWagerTransactionDto } from './process-wager-transaction.dto';
 import { MetricsRegistry } from '../../../infrastructure/observability/metrics.registry';
+import { createUuidValidationPipe } from '../shared/uuid-validation.pipe';
 
 interface MutableHttpResponse {
   status(statusCode: number): unknown;
@@ -66,14 +66,14 @@ export class WageringController {
     if (idempotencyKey === undefined || idempotencyKey.trim().length === 0) {
       throw new BadRequestException({
         code: 'IDEMPOTENCY_KEY_REQUIRED',
-        message: 'The Idempotency-Key header is required',
+        message: 'O cabeçalho Idempotency-Key é obrigatório',
       });
     }
 
     if (idempotencyKey.length > 255) {
       throw new BadRequestException({
         code: 'INVALID_IDEMPOTENCY_KEY',
-        message: 'The Idempotency-Key header must have at most 255 characters',
+        message: 'O cabeçalho Idempotency-Key deve possuir no máximo 255 caracteres',
       });
     }
 
@@ -118,7 +118,7 @@ export class WageringController {
         { source: 'http' },
       );
       this.logger.log({
-        event: 'http_wager_processed',
+        event: 'aposta_http_processada',
         correlationId,
         transactionId: output.transactionId,
         walletId: body.walletId,
@@ -138,7 +138,7 @@ export class WageringController {
 
   @Get('transactions/:transactionId')
   async findById(
-    @Param('transactionId', new ParseUUIDPipe({ version: 'all' }))
+    @Param('transactionId', createUuidValidationPipe())
     transactionId: string,
   ): Promise<WagerTransactionView> {
     try {
@@ -230,7 +230,7 @@ export class ProviderWageringController {
     ) {
       throw new BadRequestException({
         code: 'INVALID_TRANSACTION_IDENTIFIER',
-        message: 'Provider and external transaction identifiers are invalid',
+        message: 'Os identificadores do provedor e da transação externa são inválidos',
       });
     }
 

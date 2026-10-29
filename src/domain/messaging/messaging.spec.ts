@@ -4,8 +4,8 @@ import { InboxMessage } from './inbox-message';
 import { WagerTransactionProcessed } from './wager-integration-events';
 import { WagerTransactionKind } from '../wagering/wager-transaction';
 
-describe('Messaging domain', () => {
-  test('serializes a concrete and versioned integration event', () => {
+describe('Domínio de mensageria', () => {
+  test('serializa um evento de integração concreto e versionado', () => {
     const event = WagerTransactionProcessed.create({
       eventId: 'event-1',
       aggregateId: 'transaction-1',
@@ -34,7 +34,7 @@ describe('Messaging domain', () => {
     });
   });
 
-  test('marks an inbox message exactly once', () => {
+  test('marca uma mensagem da inbox exatamente uma vez', () => {
     const message = InboxMessage.receive({
       consumerName: 'consumer-a',
       messageId: 'message-1',

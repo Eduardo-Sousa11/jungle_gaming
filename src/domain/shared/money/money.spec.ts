@@ -4,14 +4,14 @@ import { CurrencyMismatchError, InvalidMoneyError } from './money.errors';
 import { Money } from './money';
 
 describe('Money', () => {
-  test('creates and serializes a canonical decimal value', () => {
+  test('cria e serializa um valor decimal canônico', () => {
     const money = Money.from({ amount: '25.00', currency: 'BRL' });
 
     expect(money.toJSON()).toEqual({ amount: '25.00', currency: 'BRL' });
     expect(money.toString()).toBe('25.00 BRL');
   });
 
-  test('performs exact decimal arithmetic', () => {
+  test('realiza aritmética decimal exata', () => {
     const first = Money.from({ amount: '0.10', currency: 'BRL' });
     const second = Money.from({ amount: '0.20', currency: 'BRL' });
 
@@ -19,7 +19,7 @@ describe('Money', () => {
     expect(second.subtract(first).toJSON().amount).toBe('0.10');
   });
 
-  test('returns new values without mutating its operands', () => {
+  test('retorna novos valores sem alterar os operandos', () => {
     const original = Money.from({ amount: '10.00', currency: 'BRL' });
     const result = original.add(
       Money.from({ amount: '5.00', currency: 'BRL' }),
@@ -30,7 +30,7 @@ describe('Money', () => {
     expect(Object.isFrozen(original)).toBeTrue();
   });
 
-  test('supports zero, negation and comparisons', () => {
+  test('aceita zero, negação e comparações', () => {
     const zero = Money.zero('BRL');
     const positive = Money.from({ amount: '8.50', currency: 'BRL' });
     const negative = positive.negate();
@@ -54,25 +54,25 @@ describe('Money', () => {
     '1e2',
     'NaN',
     'Infinity',
-  ])('rejects the invalid input amount %p', (amount) => {
+  ])('rejeita o valor de entrada inválido %p', (amount) => {
     expect(() => Money.from({ amount, currency: 'BRL' })).toThrow(
       InvalidMoneyError,
     );
   });
 
-  test('rejects an amount larger than NUMERIC(20, 2)', () => {
+  test('rejeita um valor maior que NUMERIC(20, 2)', () => {
     expect(() =>
       Money.from({ amount: '1000000000000000000.00', currency: 'BRL' }),
     ).toThrow(InvalidMoneyError);
   });
 
-  test.each(['brl', 'ZZZ', 'US', ''])('rejects invalid currency %p', (currency) => {
+  test.each(['brl', 'ZZZ', 'US', ''])('rejeita a moeda inválida %p', (currency) => {
     expect(() => Money.from({ amount: '1.00', currency })).toThrow(
       InvalidMoneyError,
     );
   });
 
-  test('rejects arithmetic between different currencies', () => {
+  test('rejeita operações aritméticas entre moedas diferentes', () => {
     const reais = Money.from({ amount: '1.00', currency: 'BRL' });
     const dollars = Money.from({ amount: '1.00', currency: 'USD' });
 

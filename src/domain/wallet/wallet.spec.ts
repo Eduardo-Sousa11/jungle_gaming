@@ -20,7 +20,7 @@ function openWallet(amount = '100.00'): Wallet {
 }
 
 describe('Wallet', () => {
-  test('opens with version one and the requested balance', () => {
+  test('abre com versão um e o saldo solicitado', () => {
     const wallet = openWallet();
 
     expect(wallet.balance.toJSON()).toEqual({
@@ -32,7 +32,7 @@ describe('Wallet', () => {
     expect(wallet.updatedAt).toEqual(openedAt);
   });
 
-  test('credits the balance and increments the version', () => {
+  test('credita o saldo e incrementa a versão', () => {
     const wallet = openWallet();
     const changedAt = new Date('2026-10-27T10:01:00.000Z');
 
@@ -49,7 +49,7 @@ describe('Wallet', () => {
     expect(wallet.updatedAt).toEqual(changedAt);
   });
 
-  test('debits the balance and increments the version', () => {
+  test('debita o saldo e incrementa a versão', () => {
     const wallet = openWallet();
 
     const change = wallet.debit(
@@ -62,7 +62,7 @@ describe('Wallet', () => {
     expect(wallet.version).toBe(2);
   });
 
-  test('rejects a debit that would make the balance negative', () => {
+  test('rejeita um débito que tornaria o saldo negativo', () => {
     const wallet = openWallet('10.00');
 
     expect(() =>
@@ -75,7 +75,7 @@ describe('Wallet', () => {
     expect(wallet.version).toBe(1);
   });
 
-  test('rejects zero-value movements', () => {
+  test('rejeita movimentações de valor zero', () => {
     const wallet = openWallet();
 
     expect(() => wallet.credit(Money.zero('BRL'), new Date())).toThrow(
@@ -86,7 +86,7 @@ describe('Wallet', () => {
     );
   });
 
-  test('rejects movements in another currency', () => {
+  test('rejeita movimentações em outra moeda', () => {
     const wallet = openWallet();
 
     expect(() =>
@@ -97,7 +97,7 @@ describe('Wallet', () => {
     ).toThrow(CurrencyMismatchError);
   });
 
-  test('rehydrates persisted state without applying transitions', () => {
+  test('reidrata o estado persistido sem aplicar transições', () => {
     const wallet = Wallet.rehydrate({
       id: 'wallet-1',
       playerId: 'player-1',

@@ -22,7 +22,7 @@ describe('Auditoria financeira final', () => {
     await orm.close(true);
   });
 
-  test('every persisted wallet equals its complete reconstructed ledger', async () => {
+  test('toda carteira persistida equivale ao ledger completo reconstruído', async () => {
     const rows = await orm.em.getConnection().execute<AuditRow[]>(`
       select
         wallet."id" as "wallet_id",

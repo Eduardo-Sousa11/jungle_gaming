@@ -37,17 +37,17 @@ export class Base64UrlLedgerCursorCodec implements LedgerCursorCodec {
         cursor.length > MAX_CURSOR_LENGTH ||
         !BASE64URL_PATTERN.test(cursor)
       ) {
-        throw new Error('Invalid Base64URL input');
+        throw new Error('Entrada Base64URL inválida');
       }
 
       const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
       if (Buffer.from(decoded, 'utf8').toString('base64url') !== cursor) {
-        throw new Error('Non-canonical Base64URL input');
+        throw new Error('Entrada Base64URL não canônica');
       }
 
       const value: unknown = JSON.parse(decoded);
       if (!this.isSerializedCursor(value)) {
-        throw new Error('Invalid cursor payload');
+        throw new Error('Payload do cursor inválido');
       }
 
       const createdAt = new Date(value.t);
@@ -55,7 +55,7 @@ export class Base64UrlLedgerCursorCodec implements LedgerCursorCodec {
         Number.isNaN(createdAt.getTime()) ||
         createdAt.toISOString() !== value.t
       ) {
-        throw new Error('Invalid cursor timestamp');
+        throw new Error('Data e hora do cursor inválidas');
       }
 
       return Object.freeze({

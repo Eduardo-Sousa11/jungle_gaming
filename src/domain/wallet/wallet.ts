@@ -47,11 +47,11 @@ export class Wallet {
     readonly at: Date;
   }): Wallet {
     if (props.id.length === 0 || props.playerId.length === 0) {
-      throw new InvalidWalletError('Wallet and player identifiers are required');
+      throw new InvalidWalletError('Os identificadores da carteira e do jogador são obrigatórios');
     }
 
     if (props.initialBalance.isNegative()) {
-      throw new InvalidWalletError('Initial wallet balance cannot be negative');
+      throw new InvalidWalletError('O saldo inicial da carteira não pode ser negativo');
     }
 
     return new Wallet(
@@ -142,7 +142,7 @@ export class Wallet {
       throw new NonPositiveWalletMovementError();
     }
 
-    // Money performs the authoritative currency comparison.
+    // A classe Money realiza a comparação definitiva entre as moedas.
     this._balance.add(money);
   }
 }

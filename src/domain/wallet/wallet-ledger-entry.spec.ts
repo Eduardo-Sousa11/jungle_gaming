@@ -10,7 +10,7 @@ function money(amount: string): Money {
 }
 
 describe('WalletLedgerEntry', () => {
-  test('creates a balanced credit entry', () => {
+  test('cria um lançamento de crédito balanceado', () => {
     const entry = WalletLedgerEntry.create({
       id: 'ledger-1',
       walletId: 'wallet-1',
@@ -26,7 +26,7 @@ describe('WalletLedgerEntry', () => {
     expect(Object.isFrozen(entry)).toBeTrue();
   });
 
-  test('creates a balanced debit entry', () => {
+  test('cria um lançamento de débito balanceado', () => {
     const entry = WalletLedgerEntry.create({
       id: 'ledger-1',
       walletId: 'wallet-1',
@@ -41,7 +41,7 @@ describe('WalletLedgerEntry', () => {
     expect(entry.isBalanced()).toBeTrue();
   });
 
-  test('rejects an arithmetically invalid entry', () => {
+  test('rejeita um lançamento aritmeticamente inválido', () => {
     expect(() =>
       WalletLedgerEntry.create({
         id: 'ledger-1',
@@ -56,7 +56,7 @@ describe('WalletLedgerEntry', () => {
     ).toThrow(InvalidLedgerEntryError);
   });
 
-  test('rejects a zero-value entry', () => {
+  test('rejeita um lançamento de valor zero', () => {
     expect(() =>
       WalletLedgerEntry.create({
         id: 'ledger-1',

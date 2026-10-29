@@ -7,14 +7,14 @@ export class InvalidWalletError extends Error {
 
 export class NonPositiveWalletMovementError extends Error {
   constructor() {
-    super('Wallet movements must be greater than zero');
+    super('As movimentações da carteira devem ser maiores que zero');
     this.name = 'NonPositiveWalletMovementError';
   }
 }
 
 export class InsufficientWalletBalanceError extends Error {
   constructor() {
-    super('Wallet balance is insufficient for this debit');
+    super('O saldo da carteira é insuficiente para este débito');
     this.name = 'InsufficientWalletBalanceError';
   }
 }
@@ -31,7 +31,7 @@ export class WalletAlreadyExistsError extends Error {
     public readonly playerId: string,
     public readonly currency: string,
   ) {
-    super(`Wallet already exists for player ${playerId} and currency ${currency}`);
+    super(`Já existe uma carteira para o jogador ${playerId} e a moeda ${currency}`);
     this.name = 'WalletAlreadyExistsError';
   }
 }

@@ -23,14 +23,14 @@ class SequenceIdGenerator implements IdGenerator {
   generate(): string {
     const id = this.ids[this.cursor];
     if (id === undefined) {
-      throw new Error('No identifier configured for this integration test');
+      throw new Error('Nenhum identificador foi configurado para este teste de integração');
     }
     this.cursor += 1;
     return id;
   }
 }
 
-describe('CreateWalletUseCase with PostgreSQL', () => {
+describe('CreateWalletUseCase com PostgreSQL', () => {
   let orm: MikroORM;
 
   beforeAll(async () => {
@@ -42,7 +42,7 @@ describe('CreateWalletUseCase with PostgreSQL', () => {
     await orm.close(true);
   });
 
-  test('persists wallet, OPENING and ledger atomically', async () => {
+  test('persiste carteira, OPENING e ledger de forma atômica', async () => {
     const useCase = createUseCase(new UuidGenerator());
     const playerId = randomUUID();
 
@@ -71,7 +71,7 @@ describe('CreateWalletUseCase with PostgreSQL', () => {
     expect(ledger.balanceAfter).toBe('100.00');
   });
 
-  test('persists only the wallet when its initial balance is zero', async () => {
+  test('persiste somente a carteira quando o saldo inicial é zero', async () => {
     const useCase = createUseCase(new UuidGenerator());
 
     const output = await useCase.execute({
@@ -95,7 +95,7 @@ describe('CreateWalletUseCase with PostgreSQL', () => {
     expect(ledgerCount).toBe(0);
   });
 
-  test('maps the player and currency uniqueness constraint to a domain conflict', async () => {
+  test('mapeia a restrição de unicidade de jogador e moeda para conflito de domínio', async () => {
     const playerId = randomUUID();
     const useCase = createUseCase(new UuidGenerator());
     await useCase.execute({
@@ -111,7 +111,7 @@ describe('CreateWalletUseCase with PostgreSQL', () => {
     ).rejects.toBeInstanceOf(WalletAlreadyExistsError);
   });
 
-  test('rolls back wallet and OPENING when the ledger insert fails', async () => {
+  test('reverte carteira e OPENING quando a inserção no ledger falha', async () => {
     const existingLedgerId = randomUUID();
     await createUseCase(
       new SequenceIdGenerator([randomUUID(), randomUUID(), existingLedgerId]),
@@ -146,6 +146,20 @@ describe('CreateWalletUseCase with PostgreSQL', () => {
         id: rolledBackTransactionId,
       }),
     ).toBe(0);
+  });
+
+  test('protege o ledger com uma mensagem do PostgreSQL em português', async () => {
+    const wallet = await createUseCase(new UuidGenerator()).execute({
+      playerId: randomUUID(),
+      initialBalance: { amount: '10.00', currency: 'BRL' },
+    });
+
+    await expect(
+      orm.em.getConnection().execute(
+        'update "wallet_ledger_entries" set "amount" = ? where "wallet_id" = ?',
+        ['11.00', wallet.id],
+      ),
+    ).rejects.toThrow('os lançamentos do ledger da carteira são imutáveis');
   });
 
   function createUseCase(idGenerator: IdGenerator): CreateWalletUseCase {

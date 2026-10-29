@@ -146,7 +146,7 @@ class MikroOrmPendingReferenceSession implements PendingReferenceSession {
     if (result.ledgerEntry !== undefined) {
       const walletRecord = this.lockedWalletRecord;
       if (walletRecord === undefined || walletRecord.id !== result.wallet.id) {
-        throw new Error('Pending reference wallet was not locked');
+        throw new Error('A carteira da referência pendente não foi bloqueada');
       }
       walletRecord.balance = result.wallet.balance.toJSON().amount;
       walletRecord.version = result.wallet.version;
@@ -190,7 +190,7 @@ class MikroOrmPendingReferenceSession implements PendingReferenceSession {
 
   private requireClaimed(transactionId: string): WagerTransactionRecord {
     if (this.claimedRecord?.id !== transactionId) {
-      throw new Error('Pending reference transaction was not claimed');
+      throw new Error('A transação com referência pendente não foi reservada');
     }
     return this.claimedRecord;
   }

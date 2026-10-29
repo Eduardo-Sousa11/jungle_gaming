@@ -2,7 +2,7 @@
   "name": "jungle_gaming",
   "version": "0.1.0",
   "private": true,
-  "description": "Distributed wagering processor for the Jungle Gaming backend challenge",
+  "description": "Processador distribuído de apostas para o desafio de backend da Jungle Gaming",
   "license": "UNLICENSED",
   "packageManager": "bun@1.4.4",
   "type": "module",

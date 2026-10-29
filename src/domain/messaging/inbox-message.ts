@@ -57,7 +57,7 @@ export class InboxMessage {
       return;
     }
     if (Number.isNaN(at.getTime())) {
-      throw new Error('Inbox processed date is invalid');
+      throw new Error('A data de processamento da inbox é inválida');
     }
     this._processedAt = new Date(at);
   }
@@ -78,7 +78,7 @@ export class InboxMessage {
       !/^[0-9a-f]{64}$/.test(state.payloadHash) ||
       Number.isNaN(state.receivedAt.getTime())
     ) {
-      throw new Error('Inbox message state is invalid');
+      throw new Error('O estado da mensagem da inbox é inválido');
     }
   }
 }

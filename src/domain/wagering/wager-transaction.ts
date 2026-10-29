@@ -136,7 +136,7 @@ export class WagerTransaction {
 
     if (!props.money.isPositive()) {
       throw new InvalidWagerTransactionError(
-        'An opening transaction requires a positive amount',
+        'Uma transação de abertura exige um valor positivo',
       );
     }
 
@@ -227,7 +227,7 @@ export class WagerTransaction {
     if (this.referenceExternalTransactionId === undefined) {
       throw new InvalidWagerReferenceError(
         WagerReferenceFailureReason.Missing,
-        'Only a transaction that declares a reference can wait for one',
+        'Somente uma transação que declara uma referência pode aguardá-la',
       );
     }
 
@@ -289,7 +289,7 @@ export class WagerTransaction {
 
       case WagerTransactionKind.Loss:
         throw new InvalidWagerTransactionError(
-          'LOSS does not affect the wallet balance or produce a ledger entry',
+          'LOSS não afeta o saldo da carteira nem produz lançamento no ledger',
         );
 
       case WagerTransactionKind.Rollback: {
@@ -341,14 +341,14 @@ export class WagerTransaction {
     ) {
       throw new InvalidWagerReferenceError(
         WagerReferenceFailureReason.Missing,
-        'A declared external reference must be resolved before processing',
+        'Uma referência externa declarada deve ser resolvida antes do processamento',
       );
     }
 
     if (!declaresReference && referenceTransactionId !== undefined) {
       throw new InvalidWagerReferenceError(
         WagerReferenceFailureReason.ExternalTransactionMismatch,
-        'A transaction without an external reference cannot link an internal reference',
+        'Uma transação sem referência externa não pode vincular uma referência interna',
       );
     }
   }
@@ -359,7 +359,7 @@ export class WagerTransaction {
     if (reference === undefined) {
       throw new InvalidWagerReferenceError(
         WagerReferenceFailureReason.Missing,
-        'The referenced transaction is required',
+        'A transação referenciada é obrigatória',
       );
     }
 
@@ -368,21 +368,21 @@ export class WagerTransaction {
     ) {
       throw new InvalidWagerReferenceError(
         WagerReferenceFailureReason.ExternalTransactionMismatch,
-        'The resolved transaction does not match the external reference',
+        'A transação resolvida não corresponde à referência externa',
       );
     }
 
     if (reference.id === this.id) {
       throw new InvalidWagerReferenceError(
         WagerReferenceFailureReason.SelfReference,
-        'A transaction cannot reference itself',
+        'Uma transação não pode referenciar a si mesma',
       );
     }
 
     if (reference.status !== WagerTransactionStatus.Processed) {
       throw new InvalidWagerReferenceError(
         WagerReferenceFailureReason.NotProcessed,
-        'The referenced transaction must be processed',
+        'A transação referenciada deve estar processada',
       );
     }
 
@@ -390,31 +390,31 @@ export class WagerTransaction {
       [
         this.providerId,
         reference.providerId,
-        'provider',
+        'provedor',
         WagerReferenceFailureReason.ProviderMismatch,
       ],
       [
         this.playerId,
         reference.playerId,
-        'player',
+        'jogador',
         WagerReferenceFailureReason.PlayerMismatch,
       ],
       [
         this.walletId,
         reference.walletId,
-        'wallet',
+        'carteira',
         WagerReferenceFailureReason.WalletMismatch,
       ],
       [
         this.roundId,
         reference.roundId,
-        'round',
+        'rodada',
         WagerReferenceFailureReason.RoundMismatch,
       ],
       [
         this.money.currency,
         reference.money.currency,
-        'currency',
+        'moeda',
         WagerReferenceFailureReason.CurrencyMismatch,
       ],
     ] as const;
@@ -423,7 +423,7 @@ export class WagerTransaction {
       if (currentValue !== referenceValue) {
         throw new InvalidWagerReferenceError(
           reason,
-          `The referenced transaction belongs to a different ${field}`,
+          `A transação referenciada pertence a outro(a) ${field}`,
         );
       }
     }
@@ -435,7 +435,7 @@ export class WagerTransaction {
     ) {
       throw new InvalidWagerReferenceError(
         WagerReferenceFailureReason.AmountMismatch,
-        'A reversal amount must equal the referenced transaction amount',
+        'O valor da reversão deve ser igual ao valor da transação referenciada',
       );
     }
 
@@ -455,7 +455,7 @@ export class WagerTransaction {
     if (allowedKinds === undefined || !allowedKinds.includes(reference.kind)) {
       throw new InvalidWagerReferenceError(
         WagerReferenceFailureReason.KindNotAllowed,
-        `${this.kind} cannot reference ${reference.kind}`,
+        `${this.kind} não pode referenciar ${reference.kind}`,
       );
     }
   }
@@ -478,13 +478,13 @@ export class WagerTransaction {
 
     if (props.kind === WagerTransactionKind.Opening) {
       throw new InvalidWagerTransactionError(
-        'OPENING is internal and cannot be created by an external operation',
+        'OPENING é interna e não pode ser criada por uma operação externa',
       );
     }
 
     if (!props.money.isPositive()) {
       throw new InvalidWagerTransactionError(
-        'A wager transaction amount must be greater than zero',
+        'O valor de uma transação de aposta deve ser maior que zero',
       );
     }
 
@@ -501,7 +501,7 @@ export class WagerTransaction {
       !hasReference
     ) {
       throw new InvalidWagerTransactionError(
-        'A reference external transaction identifier cannot be blank',
+        'O identificador da transação externa de referência não pode estar em branco',
       );
     }
 
@@ -509,7 +509,7 @@ export class WagerTransaction {
       props.referenceExternalTransactionId === props.externalTransactionId
     ) {
       throw new InvalidWagerTransactionError(
-        'A transaction cannot reference its own external identifier',
+        'Uma transação não pode referenciar seu próprio identificador externo',
       );
     }
 
@@ -519,13 +519,13 @@ export class WagerTransaction {
       !hasReference
     ) {
       throw new InvalidWagerTransactionError(
-        `${props.kind} requires a reference external transaction identifier`,
+        `${props.kind} exige um identificador de transação externa de referência`,
       );
     }
 
     if (!allowsReference && hasReference) {
       throw new InvalidWagerTransactionError(
-        `${props.kind} cannot declare a reference external transaction identifier`,
+        `${props.kind} não pode declarar um identificador de transação externa de referência`,
       );
     }
   }
@@ -538,14 +538,16 @@ export class WagerTransaction {
     );
 
     if (blankEntry !== undefined) {
-      throw new InvalidWagerTransactionError(`${blankEntry[0]} is required`);
+      throw new InvalidWagerTransactionError(
+        `O identificador ${identifierLabel(blankEntry[0])} é obrigatório`,
+      );
     }
   }
 
   private static assertPayloadHash(payloadHash: string): void {
     if (!/^[0-9a-f]{64}$/.test(payloadHash)) {
       throw new InvalidWagerTransactionError(
-        'A wager transaction requires a lowercase SHA-256 payload hash',
+        'Uma transação de aposta exige um hash SHA-256 do payload em letras minúsculas',
       );
     }
   }
@@ -553,7 +555,7 @@ export class WagerTransaction {
   private static assertValidDate(at: Date): void {
     if (Number.isNaN(at.getTime())) {
       throw new InvalidWagerTransactionError(
-        'A valid transaction date is required',
+        'Uma data válida para a transação é obrigatória',
       );
     }
   }
@@ -561,4 +563,18 @@ export class WagerTransaction {
   private static isNonBlank(value: string | undefined): value is string {
     return value !== undefined && value.trim().length > 0;
   }
+}
+
+function identifierLabel(identifier: string): string {
+  const labels: Readonly<Record<string, string>> = {
+    id: 'da transação',
+    providerId: 'do provedor',
+    externalTransactionId: 'externo da transação',
+    idempotencyKey: 'da chave de idempotência',
+    walletId: 'da carteira',
+    playerId: 'do jogador',
+    roundId: 'da rodada',
+    gameId: 'do jogo',
+  };
+  return labels[identifier] ?? identifier;
 }

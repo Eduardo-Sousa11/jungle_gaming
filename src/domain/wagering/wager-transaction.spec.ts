@@ -34,8 +34,8 @@ const BASE_PROPS: CreateWagerTransactionProps = {
   at: CREATED_AT,
 };
 
-describe('WagerTransaction creation', () => {
-  test('creates an external transaction in PENDING', () => {
+describe('Criação de WagerTransaction', () => {
+  test('cria uma transação externa em PENDING', () => {
     const transaction = createTransaction();
 
     expect(transaction.status).toBe(WagerTransactionStatus.Pending);
@@ -46,7 +46,7 @@ describe('WagerTransaction creation', () => {
     expect(transaction.createdAt).toEqual(CREATED_AT);
   });
 
-  test('prevents external OPENING transactions', () => {
+  test('impede transações OPENING externas', () => {
     expect(() =>
       createTransaction({ kind: WagerTransactionKind.Opening }),
     ).toThrow(InvalidWagerTransactionError);
@@ -55,14 +55,14 @@ describe('WagerTransaction creation', () => {
   test.each([
     WagerTransactionKind.Refund,
     WagerTransactionKind.Rollback,
-  ])('%s requires an external reference', (kind) => {
+  ])('%s exige uma referência externa', (kind) => {
     expect(() => createTransaction({ kind })).toThrow(
       InvalidWagerTransactionError,
     );
   });
 
   test.each([WagerTransactionKind.Bet, WagerTransactionKind.Loss])(
-    '%s cannot declare an external reference',
+    '%s não pode declarar uma referência externa',
     (kind) => {
       expect(() =>
         createTransaction({
@@ -73,7 +73,7 @@ describe('WagerTransaction creation', () => {
     },
   );
 
-  test('allows WIN with or without a reference', () => {
+  test('permite WIN com ou sem referência', () => {
     const withoutReference = createTransaction({
       kind: WagerTransactionKind.Win,
     });
@@ -86,7 +86,7 @@ describe('WagerTransaction creation', () => {
     expect(withReference.referenceExternalTransactionId).toBe('bet-1');
   });
 
-  test('prevents a transaction from referencing its own external identifier', () => {
+  test('impede uma transação de referenciar seu próprio identificador externo', () => {
     expect(() =>
       createTransaction({
         kind: WagerTransactionKind.Win,
@@ -95,13 +95,13 @@ describe('WagerTransaction creation', () => {
     ).toThrow(InvalidWagerTransactionError);
   });
 
-  test('rejects a zero-value wagering transaction', () => {
+  test('rejeita uma transação de aposta com valor zero', () => {
     expect(() =>
       createTransaction({ money: Money.zero('BRL') }),
     ).toThrow(InvalidWagerTransactionError);
   });
 
-  test('creates an internal processed OPENING transaction', () => {
+  test('cria uma transação OPENING interna e processada', () => {
     const transaction = WagerTransaction.createOpening({
       id: 'transaction-1',
       walletId: 'wallet-1',
@@ -120,7 +120,7 @@ describe('WagerTransaction creation', () => {
     expect(transaction.processedAt).toEqual(CREATED_AT);
   });
 
-  test('rejects an OPENING transaction with zero balance', () => {
+  test('rejeita uma transação OPENING com saldo zero', () => {
     expect(() =>
       WagerTransaction.createOpening({
         id: 'transaction-1',
@@ -134,8 +134,8 @@ describe('WagerTransaction creation', () => {
   });
 });
 
-describe('WagerTransaction state machine', () => {
-  test('transitions from PENDING to PROCESSED', () => {
+describe('Máquina de estados de WagerTransaction', () => {
+  test('muda de PENDING para PROCESSED', () => {
     const transaction = createTransaction();
 
     transaction.markProcessed(undefined, PROCESSED_AT);
@@ -145,7 +145,7 @@ describe('WagerTransaction state machine', () => {
     expect(transaction.processedAt).toEqual(PROCESSED_AT);
   });
 
-  test('transitions from PENDING_REFERENCE to PROCESSED after resolving it', () => {
+  test('muda de PENDING_REFERENCE para PROCESSED após resolver a referência', () => {
     const transaction = createTransaction({
       kind: WagerTransactionKind.Refund,
       referenceExternalTransactionId: 'bet-1',
@@ -160,7 +160,7 @@ describe('WagerTransaction state machine', () => {
     expect(transaction.referenceTransactionId).toBe('internal-bet-1');
   });
 
-  test('does not process a declared reference before resolving it', () => {
+  test('não processa uma referência declarada antes de resolvê-la', () => {
     const transaction = createTransaction({
       kind: WagerTransactionKind.Rollback,
       referenceExternalTransactionId: 'bet-1',
@@ -172,7 +172,7 @@ describe('WagerTransaction state machine', () => {
     expect(transaction.status).toBe(WagerTransactionStatus.Pending);
   });
 
-  test('does not attach an undeclared internal reference', () => {
+  test('não vincula uma referência interna não declarada', () => {
     const transaction = createTransaction();
 
     expect(() =>
@@ -181,7 +181,7 @@ describe('WagerTransaction state machine', () => {
     expect(transaction.status).toBe(WagerTransactionStatus.Pending);
   });
 
-  test('only transactions that declare a reference can wait for one', () => {
+  test('somente transações que declaram uma referência podem aguardá-la', () => {
     const transaction = createTransaction();
 
     expect(() => transaction.markPendingReference()).toThrow(
@@ -190,7 +190,7 @@ describe('WagerTransaction state machine', () => {
     expect(transaction.status).toBe(WagerTransactionStatus.Pending);
   });
 
-  test('transitions to REJECTED with an auditable failure code', () => {
+  test('muda para REJECTED com um código de falha auditável', () => {
     const transaction = createTransaction();
 
     transaction.reject(WagerTransactionFailureCode.InsufficientFunds);
@@ -202,7 +202,7 @@ describe('WagerTransaction state machine', () => {
     expect(transaction.isTerminal()).toBe(true);
   });
 
-  test('transitions to FAILED with a permanent infrastructure code', () => {
+  test('muda para FAILED com um código de infraestrutura permanente', () => {
     const transaction = createTransaction();
 
     transaction.fail(
@@ -220,7 +220,7 @@ describe('WagerTransaction state machine', () => {
     WagerTransactionStatus.Processed,
     WagerTransactionStatus.Rejected,
     WagerTransactionStatus.Failed,
-  ])('prevents every transition out of terminal state %s', (terminalStatus) => {
+  ])('impede qualquer transição a partir do estado terminal %s', (terminalStatus) => {
     const transaction = WagerTransaction.rehydrate({
       ...BASE_PROPS,
       status: terminalStatus,
@@ -251,7 +251,7 @@ describe('WagerTransaction state machine', () => {
     );
   });
 
-  test('rehydrates persisted state without replaying transition rules', () => {
+  test('reidrata o estado persistido sem reaplicar regras de transição', () => {
     const transaction = WagerTransaction.rehydrate({
       ...BASE_PROPS,
       status: WagerTransactionStatus.PendingReference,
@@ -264,8 +264,8 @@ describe('WagerTransaction state machine', () => {
   });
 });
 
-describe('WagerTransaction domain queries', () => {
-  test('matches the canonical payload hash exactly', () => {
+describe('Consultas de domínio de WagerTransaction', () => {
+  test('compara exatamente o hash canônico do payload', () => {
     const transaction = createTransaction();
 
     expect(transaction.matchesPayload(PAYLOAD_HASH)).toBe(true);
@@ -278,7 +278,7 @@ describe('WagerTransaction domain queries', () => {
     [WagerTransactionKind.Loss, false],
     [WagerTransactionKind.Refund, true],
     [WagerTransactionKind.Rollback, true],
-  ])('%s affects balance: %s', (kind, expected) => {
+  ])('%s afeta o saldo: %s', (kind, expected) => {
     const referenceExternalTransactionId =
       kind === WagerTransactionKind.Refund ||
       kind === WagerTransactionKind.Rollback
@@ -298,7 +298,7 @@ describe('WagerTransaction domain queries', () => {
     [WagerTransactionKind.Loss, false],
     [WagerTransactionKind.Refund, true],
     [WagerTransactionKind.Rollback, true],
-  ])('%s requires reference: %s', (kind, expected) => {
+  ])('%s exige referência: %s', (kind, expected) => {
     const referenceExternalTransactionId = expected ? 'bet-1' : undefined;
     const transaction = createTransaction({
       kind,
@@ -308,7 +308,7 @@ describe('WagerTransaction domain queries', () => {
     expect(transaction.requiresReference()).toBe(expected);
   });
 
-  test('maps BET and WIN to their ledger directions', () => {
+  test('mapeia BET e WIN para suas direções no ledger', () => {
     expect(createTransaction().ledgerDirectionFor()).toBe(
       WalletMovementDirection.Debit,
     );
@@ -317,7 +317,7 @@ describe('WagerTransaction domain queries', () => {
     ).toBe(WalletMovementDirection.Credit);
   });
 
-  test('does not define a ledger direction for LOSS', () => {
+  test('não define uma direção no ledger para LOSS', () => {
     const loss = createTransaction({ kind: WagerTransactionKind.Loss });
 
     expect(() => loss.ledgerDirectionFor()).toThrow(
@@ -325,7 +325,7 @@ describe('WagerTransaction domain queries', () => {
     );
   });
 
-  test('validates a REFUND reference and returns CREDIT', () => {
+  test('valida uma referência de REFUND e retorna CREDIT', () => {
     const bet = createProcessedReference(WagerTransactionKind.Bet, {
       externalTransactionId: 'bet-1',
     });
@@ -346,7 +346,7 @@ describe('WagerTransaction domain queries', () => {
     [WagerTransactionKind.Bet, WalletMovementDirection.Credit],
     [WagerTransactionKind.Win, WalletMovementDirection.Debit],
     [WagerTransactionKind.Refund, WalletMovementDirection.Debit],
-  ])('ROLLBACK inverts a processed %s', (referenceKind, expected) => {
+  ])('ROLLBACK inverte uma transação %s processada', (referenceKind, expected) => {
     const referenceExternalTransactionId = `${referenceKind.toLowerCase()}-1`;
     const reference = createProcessedReference(referenceKind, {
       id: `internal-${referenceExternalTransactionId}`,
@@ -365,7 +365,7 @@ describe('WagerTransaction domain queries', () => {
     expect(rollback.ledgerDirectionFor(reference)).toBe(expected);
   });
 
-  test('rejects a resolved transaction that does not match the external reference', () => {
+  test('rejeita uma transação resolvida que não corresponde à referência externa', () => {
     const bet = createProcessedReference(WagerTransactionKind.Bet, {
       externalTransactionId: 'another-bet',
     });
@@ -380,15 +380,15 @@ describe('WagerTransaction domain queries', () => {
   });
 
   test.each([
-    ['provider', { providerId: 'provider-b' }],
-    ['player', { playerId: 'player-2' }],
-    ['wallet', { walletId: 'wallet-2' }],
-    ['round', { roundId: 'round-2' }],
+    ['provedor', { providerId: 'provider-b' }],
+    ['jogador', { playerId: 'player-2' }],
+    ['carteira', { walletId: 'wallet-2' }],
+    ['rodada', { roundId: 'round-2' }],
     [
-      'currency',
+      'moeda',
       { money: Money.from({ amount: '25.00', currency: 'USD' }) },
     ],
-  ])('rejects a reference from another %s', (_field, referenceOverrides) => {
+  ])('rejeita uma referência de outro(a) %s', (_field, referenceOverrides) => {
     const bet = createProcessedReference(WagerTransactionKind.Bet, {
       externalTransactionId: 'bet-1',
       ...referenceOverrides,
@@ -403,7 +403,7 @@ describe('WagerTransaction domain queries', () => {
     );
   });
 
-  test('requires a processed reference of an allowed kind', () => {
+  test('exige uma referência processada de um tipo permitido', () => {
     const pendingBet = createTransaction({
       externalTransactionId: 'bet-1',
     });
@@ -423,7 +423,7 @@ describe('WagerTransaction domain queries', () => {
     );
   });
 
-  test('rejects a partial reversal', () => {
+  test('rejeita uma reversão parcial', () => {
     const bet = createProcessedReference(WagerTransactionKind.Bet, {
       externalTransactionId: 'bet-1',
       money: Money.from({ amount: '50.00', currency: 'BRL' }),

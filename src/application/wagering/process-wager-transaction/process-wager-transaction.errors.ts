@@ -1,6 +1,6 @@
 export class WagerWalletNotFoundError extends Error {
   constructor(public readonly walletId: string) {
-    super(`Wallet ${walletId} was not found`);
+    super(`A carteira ${walletId} não foi encontrada`);
     this.name = 'WagerWalletNotFoundError';
   }
 }
@@ -11,7 +11,7 @@ export class WagerIdempotencyConflictError extends Error {
     public readonly idempotencyKey: string,
   ) {
     super(
-      `Idempotency key ${idempotencyKey} was already used with another payload by provider ${providerId}`,
+      `A chave de idempotência ${idempotencyKey} já foi usada com outro payload pelo provedor ${providerId}`,
     );
     this.name = 'WagerIdempotencyConflictError';
   }
@@ -23,7 +23,7 @@ export class WagerExternalTransactionConflictError extends Error {
     public readonly externalTransactionId: string,
   ) {
     super(
-      `External transaction ${externalTransactionId} already exists for provider ${providerId}`,
+      `A transação externa ${externalTransactionId} já existe para o provedor ${providerId}`,
     );
     this.name = 'WagerExternalTransactionConflictError';
   }
@@ -32,7 +32,7 @@ export class WagerExternalTransactionConflictError extends Error {
 /** Sinaliza uma corrida vencida por outra transação no PostgreSQL. */
 export class WagerPersistenceRaceError extends Error {
   constructor() {
-    super('A concurrent wager transaction won a persistence uniqueness race');
+    super('Outra transação de aposta concorrente venceu a disputa de unicidade na persistência');
     this.name = 'WagerPersistenceRaceError';
   }
 }
@@ -43,7 +43,7 @@ export class InboxPayloadConflictError extends Error {
     public readonly messageId: string,
   ) {
     super(
-      `Inbox message ${consumerName}/${messageId} was already received with another payload`,
+      `A mensagem da inbox ${consumerName}/${messageId} já foi recebida com outro payload`,
     );
     this.name = 'InboxPayloadConflictError';
   }

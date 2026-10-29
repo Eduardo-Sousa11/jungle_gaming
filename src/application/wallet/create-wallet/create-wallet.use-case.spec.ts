@@ -25,7 +25,7 @@ class SequenceIdGenerator implements IdGenerator {
   generate(): string {
     const id = this.ids[this.cursor];
     if (id === undefined) {
-      throw new Error('No identifier configured for this test');
+      throw new Error('Nenhum identificador foi configurado para este teste');
     }
     this.cursor += 1;
     return id;
@@ -41,7 +41,7 @@ const fixedHasher: PayloadHasher = {
 };
 
 describe('CreateWalletUseCase', () => {
-  test('creates wallet, OPENING and ledger for a positive balance', async () => {
+  test('cria carteira, OPENING e ledger para um saldo positivo', async () => {
     const repository = new CapturingWalletRepository();
     const useCase = new CreateWalletUseCase(
       repository,
@@ -71,7 +71,7 @@ describe('CreateWalletUseCase', () => {
     );
   });
 
-  test('creates only the wallet when initial balance is zero', async () => {
+  test('cria somente a carteira quando o saldo inicial é zero', async () => {
     const repository = new CapturingWalletRepository();
     const useCase = new CreateWalletUseCase(
       repository,

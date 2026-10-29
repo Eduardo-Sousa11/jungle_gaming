@@ -12,7 +12,7 @@ export class InvalidTransactionStateError extends Error {
     public readonly attemptedStatus: string,
   ) {
     super(
-      `Transaction ${transactionId} cannot transition from ${currentStatus} to ${attemptedStatus}`,
+      `A transação ${transactionId} não pode mudar de ${currentStatus} para ${attemptedStatus}`,
     );
     this.name = 'InvalidTransactionStateError';
   }
