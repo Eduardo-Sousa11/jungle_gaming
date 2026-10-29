@@ -7,6 +7,7 @@ import type { Clock } from '../../shared/clock.port';
 import type { IdGenerator } from '../../shared/id-generator.port';
 import type { PayloadHasher } from '../../shared/payload-hasher.port';
 import type { WalletCreationRepository } from './wallet-creation.repository';
+import { createWagerIntegrationEvents } from '../../wagering/process-wager-transaction/wager-integration-event.factory';
 
 export interface CreateWalletInput {
   readonly playerId: string;
@@ -70,11 +71,24 @@ export class CreateWalletUseCase {
       balanceAfter: initialBalance,
       createdAt,
     });
+    const events = createWagerIntegrationEvents({
+      transaction: openingTransaction,
+      wallet,
+      ledgerEntry,
+      responseSnapshot: {
+        transactionId: openingTransaction.id,
+        status: openingTransaction.status,
+        balance: wallet.balance.toJSON(),
+      },
+      occurredAt: createdAt,
+      context: { correlationId: openingTransaction.id },
+    });
 
     await this.repository.create({
       wallet,
       openingTransaction,
       ledgerEntry,
+      events,
     });
 
     return this.toOutput(wallet);

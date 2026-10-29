@@ -19,6 +19,8 @@
     "start:prod": "bun dist/src/main.js",
     "test": "bun test",
     "test:integration": "bun test ./test/integration/*.integration.ts",
+    "test:distributed": "bun test ./test/integration/messaging.integration.ts ./test/integration/process-wager-transaction.integration.ts",
+    "test:audit": "bun test ./test/integration/zz-final-audit.integration.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

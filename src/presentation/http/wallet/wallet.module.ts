@@ -41,6 +41,7 @@ import {
 import { WalletLedgerEntryRecord } from '../../../infrastructure/persistence/entities/wallet-ledger-entry.record';
 import { WalletRecord } from '../../../infrastructure/persistence/entities/wallet.record';
 import { WagerTransactionRecord } from '../../../infrastructure/persistence/entities/wager-transaction.record';
+import { OutboxMessageRecord } from '../../../infrastructure/persistence/entities/outbox-message.record';
 import { MikroOrmWalletCreationRepository } from '../../../infrastructure/persistence/repositories/mikro-orm-wallet-creation.repository';
 import { MikroOrmWalletQueryRepository } from '../../../infrastructure/persistence/repositories/mikro-orm-http-query.repositories';
 import { MikroOrmWalletLedgerRepository } from '../../../infrastructure/persistence/repositories/mikro-orm-wallet-ledger.repository';
@@ -58,6 +59,7 @@ import { WalletController } from './wallet.controller';
       WalletRecord,
       WagerTransactionRecord,
       WalletLedgerEntryRecord,
+      OutboxMessageRecord,
     ]),
   ],
   providers: [

@@ -12,6 +12,7 @@ import {
   WagerTransactionStatus,
 } from '../../../domain/wagering/wager-transaction';
 import { Wallet } from '../../../domain/wallet/wallet';
+import type { InboxMessage } from '../../../domain/messaging/inbox-message';
 import {
   WagerExternalTransactionConflictError,
   WagerIdempotencyConflictError,
@@ -237,8 +238,20 @@ class InMemoryWagerProcessingSession implements WagerProcessingSession {
   private locked = false;
   private readonly byIdempotency = new Map<string, StoredWagerTransaction>();
   private readonly byExternal = new Map<string, StoredWagerTransaction>();
+  private readonly inbox = new Map<string, InboxMessage>();
 
   constructor(private readonly wallet: Wallet | undefined) {}
+
+  async findInboxMessage(
+    consumerName: string,
+    messageId: string,
+  ): Promise<InboxMessage | undefined> {
+    return this.inbox.get(`${consumerName}:${messageId}`);
+  }
+
+  async saveInboxMessage(message: InboxMessage): Promise<void> {
+    this.inbox.set(`${message.consumerName}:${message.messageId}`, message);
+  }
 
   async findByIdempotencyKey(
     providerId: string,

@@ -279,6 +279,19 @@ describe('HTTP wagering contracts', () => {
     expect(unknownTransaction['code']).toBe('WAGER_TRANSACTION_NOT_FOUND');
   });
 
+  test('exposes operational metrics in Prometheus text format', async () => {
+    const response = await fetch(`${baseUrl}/metrics`);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/plain');
+    expect(body).toContain('wager_transactions_total');
+    expect(body).toContain('wager_processing_duration_seconds_count');
+    expect(body).toContain('wager_lock_conflicts_total');
+    expect(body).toContain('outbox_lag_seconds');
+    expect(body).toContain('reconciliation_divergences_total');
+  });
+
   async function createWallet(initialBalance: string): Promise<{
     id: string;
     playerId: string;

@@ -12,6 +12,7 @@ import { WalletAlreadyExistsError } from '../../../domain/wallet/wallet.errors';
 import { WalletLedgerEntryRecord } from '../entities/wallet-ledger-entry.record';
 import { WalletRecord } from '../entities/wallet.record';
 import { WagerTransactionRecord } from '../entities/wager-transaction.record';
+import { OutboxMessageRecord } from '../entities/outbox-message.record';
 
 @Injectable()
 export class MikroOrmWalletCreationRepository
@@ -96,6 +97,26 @@ export class MikroOrmWalletCreationRepository
           transactionalEntityManager.persist(ledgerRecord);
           await transactionalEntityManager.flush();
         }
+
+        for (const event of aggregate.events ?? []) {
+          transactionalEntityManager.persist(
+            transactionalEntityManager.create(OutboxMessageRecord, {
+              id: event.eventId,
+              aggregateId: event.aggregateId,
+              eventType: event.eventType,
+              eventVersion: event.version,
+              payload: { ...event.toJSON() },
+              occurredAt: event.occurredAt,
+              attempts: 0,
+              nextAttemptAt: event.occurredAt,
+              publishedAt: null,
+              lockedAt: null,
+              lockedBy: null,
+              lastErrorCode: null,
+            }),
+          );
+        }
+        await transactionalEntityManager.flush();
       });
     } catch (error) {
       if (

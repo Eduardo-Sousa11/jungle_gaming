@@ -10,11 +10,14 @@ import {
   type WagerTransactionStatus,
 } from '../../../domain/wagering/wager-transaction';
 import {
+  InboxPayloadConflictError,
   WagerExternalTransactionConflictError,
   WagerIdempotencyConflictError,
   WagerPersistenceRaceError,
   WagerWalletNotFoundError,
 } from './process-wager-transaction.errors';
+import { InboxMessage } from '../../../domain/messaging/inbox-message';
+import { createWagerIntegrationEvents } from './wager-integration-event.factory';
 import type {
   StoredWagerTransaction,
   WagerProcessingRepository,
@@ -45,6 +48,17 @@ export interface ProcessWagerTransactionOutput {
   readonly idempotentReplay: boolean;
 }
 
+export interface ProcessWagerTransactionContext {
+  readonly correlationId?: string;
+  readonly causationId?: string;
+  readonly inbox?: {
+    readonly consumerName: string;
+    readonly messageId: string;
+    readonly payloadHash: string;
+    readonly receivedAt: Date;
+  };
+}
+
 export class ProcessWagerTransactionUseCase {
   constructor(
     private readonly repository: WagerProcessingRepository,
@@ -56,6 +70,7 @@ export class ProcessWagerTransactionUseCase {
 
   async execute(
     input: ProcessWagerTransactionInput,
+    context: ProcessWagerTransactionContext = {},
   ): Promise<ProcessWagerTransactionOutput> {
     const money = Money.from(input.money);
     const payloadHash = this.payloadHasher.hash({
@@ -73,7 +88,7 @@ export class ProcessWagerTransactionUseCase {
 
     for (let attempt = 1; attempt <= MAX_PERSISTENCE_ATTEMPTS; attempt += 1) {
       try {
-        return await this.executeAttempt(input, money, payloadHash);
+        return await this.executeAttempt(input, money, payloadHash, context);
       } catch (error) {
         if (
           !(error instanceof WagerPersistenceRaceError) ||
@@ -91,14 +106,17 @@ export class ProcessWagerTransactionUseCase {
     input: ProcessWagerTransactionInput,
     money: Money,
     payloadHash: string,
+    context: ProcessWagerTransactionContext,
   ): Promise<ProcessWagerTransactionOutput> {
     return this.repository.transactional(async (session) => {
+      const inboxMessage = await this.prepareInbox(session, context);
       const existingResult = await this.findExistingResult(
         session,
         input,
         payloadHash,
       );
       if (existingResult !== undefined) {
+        await this.completeInbox(session, inboxMessage);
         return existingResult;
       }
 
@@ -113,6 +131,7 @@ export class ProcessWagerTransactionUseCase {
         payloadHash,
       );
       if (resultAfterLock !== undefined) {
+        await this.completeInbox(session, inboxMessage);
         return resultAfterLock;
       }
 
@@ -162,6 +181,20 @@ export class ProcessWagerTransactionUseCase {
           ? {}
           : { failureCode: transaction.failureCode }),
       });
+      const eventContext = {
+        correlationId: context.correlationId ?? transaction.id,
+        ...(context.causationId === undefined
+          ? {}
+          : { causationId: context.causationId }),
+      };
+      const events = createWagerIntegrationEvents({
+        transaction,
+        wallet,
+        ledgerEntry: operationResult.ledgerEntry,
+        responseSnapshot,
+        occurredAt: now,
+        context: eventContext,
+      });
 
       await session.save({
         transaction,
@@ -169,10 +202,51 @@ export class ProcessWagerTransactionUseCase {
         ledgerEntry: operationResult.ledgerEntry,
         responseSnapshot,
         persistedAt: now,
+        events,
       });
+      await this.completeInbox(session, inboxMessage);
 
       return this.toOutput(responseSnapshot, false);
     });
+  }
+
+  private async prepareInbox(
+    session: WagerProcessingSession,
+    context: ProcessWagerTransactionContext,
+  ): Promise<InboxMessage | undefined> {
+    const input = context.inbox;
+    if (input === undefined) {
+      return undefined;
+    }
+
+    const existing = await session.findInboxMessage(
+      input.consumerName,
+      input.messageId,
+    );
+    if (existing !== undefined) {
+      if (!existing.matchesPayload(input.payloadHash)) {
+        throw new InboxPayloadConflictError(
+          input.consumerName,
+          input.messageId,
+        );
+      }
+      return existing;
+    }
+
+    const received = InboxMessage.receive(input);
+    await session.saveInboxMessage(received);
+    return received;
+  }
+
+  private async completeInbox(
+    session: WagerProcessingSession,
+    inboxMessage: InboxMessage | undefined,
+  ): Promise<void> {
+    if (inboxMessage === undefined || inboxMessage.isProcessed()) {
+      return;
+    }
+    inboxMessage.markProcessed(this.clock.now());
+    await session.saveInboxMessage(inboxMessage);
   }
 
   private async findExistingResult(

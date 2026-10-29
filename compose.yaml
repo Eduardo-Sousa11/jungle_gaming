@@ -49,7 +49,11 @@ services:
       DATABASE_USER: ${DATABASE_USER:-jungle}
       SQS_ENDPOINT: http://localstack:4566
       WAGER_DLQ_NAME: wager-transactions-dlq.fifo
+      WAGER_EVENTS_QUEUE_NAME: wager-events.fifo
       WAGER_QUEUE_NAME: wager-transactions.fifo
+      WORKERS_ENABLED: ${WORKERS_ENABLED:-true}
+      OUTBOX_POLL_INTERVAL_MS: ${OUTBOX_POLL_INTERVAL_MS:-500}
+      PENDING_REFERENCE_POLL_INTERVAL_MS: ${PENDING_REFERENCE_POLL_INTERVAL_MS:-1000}
     depends_on:
       localstack:
         condition: service_healthy

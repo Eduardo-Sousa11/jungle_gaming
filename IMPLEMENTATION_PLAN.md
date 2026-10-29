@@ -21,24 +21,24 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 |---|---|---|---|
 | Implementar endpoints HTTP de submissão e consulta | Alta | DONE | Testes de contrato aprovados |
 | Implementar cursor do ledger e reconciliação | Alta | DONE | Paginação estável e reconstrução exata |
-| Implementar consumer SQS e inbox transacional | Crítica | TODO | Redelivery não duplica efeitos |
-| Implementar publisher da outbox transacional | Eliminatória | TODO | Falha após o commit não perde eventos |
-| Implementar worker de referências pendentes | Crítica | TODO | Referências fora de ordem são resolvidas |
-| Implementar retry, DLQ e graceful shutdown | Alta | TODO | Testes de integração dos fluxos de falha aprovados |
-| Implementar logs estruturados, métricas e health | Alta | TODO | Sinais obrigatórios disponibilizados |
+| Implementar consumer SQS e inbox transacional | Crítica | DONE | Redelivery não duplica efeitos |
+| Implementar publisher da outbox transacional | Eliminatória | DONE | Falha após o commit não perde eventos |
+| Implementar worker de referências pendentes | Crítica | DONE | Referências fora de ordem são resolvidas |
+| Implementar retry, DLQ e graceful shutdown | Alta | DONE | Testes de integração dos fluxos de falha aprovados |
+| Implementar logs estruturados, métricas e health | Alta | DONE | Sinais obrigatórios disponibilizados |
 
 ## Validação distribuída e entrega
 
 | Tarefa | Prioridade | Status | Critério de aceite |
 |---|---|---|---|
-| Criar suíte de integração com PostgreSQL/LocalStack | Eliminatória | TODO | Testes utilizam containers reais |
+| Criar suíte de integração com PostgreSQL/LocalStack | Eliminatória | DONE | Testes utilizam containers reais |
 | Testar cinquenta requisições duplicadas concorrentes | Eliminatória | DONE | Exatamente um efeito financeiro |
 | Testar corrida de saldo insuficiente na mesma wallet | Eliminatória | DONE | Uma processada, uma rejeitada e saldo 20,00 |
-| Testar três instâncias da aplicação | Eliminatória | TODO | Consistência distribuída preservada |
-| Testar recuperação de falhas do consumer e publisher | Crítica | TODO | Reinicialização converge sem perder efeitos |
-| Executar auditoria final de reconciliação | Crítica | TODO | Toda wallet equivale ao ledger reconstruído |
-| Finalizar documentação README e ARCHITECTURE | Alta | TODO | Setup, decisões e limitações documentados |
-| Criar roteiro de demonstração técnica | Média | TODO | Cenários principais são reproduzíveis |
+| Testar três instâncias da aplicação | Eliminatória | DONE | Consistência distribuída preservada |
+| Testar recuperação de falhas do consumer e publisher | Crítica | DONE | Reinicialização converge sem perder efeitos |
+| Executar auditoria final de reconciliação | Crítica | DONE | Toda wallet equivale ao ledger reconstruído |
+| Finalizar documentação README e ARCHITECTURE | Alta | DONE | Setup, decisões e limitações documentados |
+| Criar roteiro de demonstração técnica | Média | DONE | Cenários principais são reproduzíveis |
 
 ## Riscos da etapa atual
 
@@ -128,3 +128,19 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 - Keyset pagination verificada com novo lançamento inserido entre páginas, sem deslocar ou repetir os lançamentos anteriores.
 - `POST /wallets/:walletId/reconciliation`: saldo calculado exatamente por créditos menos débitos e quantidade de lançamentos verificados.
 - Divergência financeira: sinalizada na resposta, registrada pelo monitor e não corrigida silenciosamente.
+
+### Mensageria, resiliência e entrega final — 28/10/2026
+
+- `npx --yes bun@1.4.4 run check`: aprovado, com 138 testes e 0 falhas.
+- `npx --yes bun@1.4.4 run build`: aprovado.
+- `npx --yes bun@1.4.4 run test:integration`: 30 aprovados, 0 falhas e 629 asserções com PostgreSQL 17 e LocalStack reais.
+- Consumer SQS: inbox, efeito financeiro, ledger e outbox confirmados na mesma transação; ACK somente após commit.
+- Crash após commit e antes do ACK: redelivery retornou replay sem novo débito ou novo lançamento.
+- Outbox: publishers concorrentes com `SKIP LOCKED`, lease expirado recuperado e todos os eventos confirmados.
+- Referência fora de ordem: REFUND pendente convergiu após a BET; referência ausente expirou em rejeição auditável.
+- Retry e DLQ: mensagem inválida chegou à DLQ real após o limite configurado de entregas.
+- Três instâncias independentes: somente uma BET de `60.00` foi processada sobre saldo `100.00`; saldo final `40.00`.
+- Auditoria final: todas as wallets persistidas equivalem ao saldo reconstruído pelo ledger.
+- Observabilidade: logs JSON, métricas Prometheus, liveness e readiness validados no Compose.
+- Graceful shutdown: container encerrou em 2 segundos e voltou a ficar pronto após reinício.
+- Documentos finais: README, arquitetura, matriz de rastreabilidade e roteiro de demonstração em português.

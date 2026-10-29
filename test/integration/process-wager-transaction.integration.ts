@@ -250,6 +250,54 @@ describe('ProcessWagerTransactionUseCase with PostgreSQL', () => {
     ).toBe(3);
   });
 
+  test('preserves consistency with three independent application instances', async () => {
+    const context = await createWallet('100.00');
+    const instances = await Promise.all([
+      MikroORM.init(mikroOrmConfig),
+      MikroORM.init(mikroOrmConfig),
+      MikroORM.init(mikroOrmConfig),
+    ]);
+    try {
+      const inputs = Array.from({ length: 3 }, () =>
+        wagerInput(context, {
+          externalTransactionId: randomUUID(),
+          idempotencyKey: randomUUID(),
+          money: { amount: '60.00', currency: 'BRL' },
+        }),
+      );
+      const outputs = await Promise.all(
+        inputs.map((input, index) =>
+          createWagerUseCase(new UuidGenerator(), instances[index]).execute(
+            input,
+          ),
+        ),
+      );
+
+      expect(
+        outputs.filter(
+          (output) => output.status === WagerTransactionStatus.Processed,
+        ),
+      ).toHaveLength(1);
+      expect(
+        outputs.filter(
+          (output) => output.status === WagerTransactionStatus.Rejected,
+        ),
+      ).toHaveLength(2);
+      const entityManager = orm.em.fork();
+      const wallet = await entityManager.findOneOrFail(WalletRecord, {
+        id: context.walletId,
+      });
+      expect(wallet.balance).toBe('40.00');
+      expect(
+        await entityManager.count(WalletLedgerEntryRecord, {
+          walletId: context.walletId,
+        }),
+      ).toBe(2);
+    } finally {
+      await Promise.all(instances.map((instance) => instance.close(true)));
+    }
+  });
+
   test('rolls back transaction and wallet update when ledger persistence fails', async () => {
     const context = await createWallet('100.00');
     const existingLedgerId = randomUUID();
@@ -316,9 +364,10 @@ describe('ProcessWagerTransactionUseCase with PostgreSQL', () => {
 
   function createWagerUseCase(
     idGenerator: IdGenerator = new UuidGenerator(),
+    instance: MikroORM = orm,
   ): ProcessWagerTransactionUseCase {
     return new ProcessWagerTransactionUseCase(
-      new MikroOrmWagerProcessingRepository(orm.em.fork()),
+      new MikroOrmWagerProcessingRepository(instance.em.fork()),
       idGenerator,
       new SystemClock(),
       new Sha256PayloadHasher(),

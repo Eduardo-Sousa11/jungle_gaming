@@ -7,6 +7,8 @@ import type {
   WagerTransactionStatus,
 } from '../../../domain/wagering/wager-transaction';
 import type { MoneyProps } from '../../../domain/shared/money/money';
+import type { InboxMessage } from '../../../domain/messaging/inbox-message';
+import type { WagerIntegrationEvent } from '../../../domain/messaging/wager-integration-events';
 
 export const WAGER_PROCESSING_REPOSITORY = Symbol(
   'WAGER_PROCESSING_REPOSITORY',
@@ -34,9 +36,15 @@ export interface SaveWagerProcessingResult {
   readonly ledgerEntry?: WalletLedgerEntry;
   readonly responseSnapshot: WagerResponseSnapshot;
   readonly persistedAt: Date;
+  readonly events: readonly WagerIntegrationEvent[];
 }
 
 export interface WagerProcessingSession {
+  findInboxMessage(
+    consumerName: string,
+    messageId: string,
+  ): Promise<InboxMessage | undefined>;
+  saveInboxMessage(message: InboxMessage): Promise<void>;
   findByIdempotencyKey(
     providerId: string,
     idempotencyKey: string,

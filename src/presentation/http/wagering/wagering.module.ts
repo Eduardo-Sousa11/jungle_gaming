@@ -27,6 +27,8 @@ import { WagerOperationProcessor } from '../../../domain/wagering/wager-operatio
 import { WalletLedgerEntryRecord } from '../../../infrastructure/persistence/entities/wallet-ledger-entry.record';
 import { WalletRecord } from '../../../infrastructure/persistence/entities/wallet.record';
 import { WagerTransactionRecord } from '../../../infrastructure/persistence/entities/wager-transaction.record';
+import { InboxMessageRecord } from '../../../infrastructure/persistence/entities/inbox-message.record';
+import { OutboxMessageRecord } from '../../../infrastructure/persistence/entities/outbox-message.record';
 import { MikroOrmWagerTransactionQueryRepository } from '../../../infrastructure/persistence/repositories/mikro-orm-http-query.repositories';
 import { MikroOrmWagerProcessingRepository } from '../../../infrastructure/persistence/repositories/mikro-orm-wager-processing.repository';
 import { Sha256PayloadHasher } from '../../../infrastructure/shared/sha256-payload-hasher';
@@ -44,6 +46,8 @@ import {
       WalletRecord,
       WagerTransactionRecord,
       WalletLedgerEntryRecord,
+      InboxMessageRecord,
+      OutboxMessageRecord,
     ]),
   ],
   providers: [
@@ -109,5 +113,6 @@ import {
         new GetWagerTransactionByProviderUseCase(repository),
     },
   ],
+  exports: [ProcessWagerTransactionUseCase, PAYLOAD_HASHER],
 })
 export class WageringModule {}
