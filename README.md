@@ -1,6 +1,6 @@
 # Jungle Gaming — Processador Distribuído de Apostas
 
-Backend desenvolvido para o desafio técnico da Jungle Gaming. O projeto está sendo entregue em etapas pequenas e validadas. A versão atual contém a fundação da aplicação, a infraestrutura, o esquema financeiro, o objeto de valor `Money`, a criação atômica de wallets, o processamento transacional e idempotente das apostas, a consulta paginada do ledger e a reconciliação financeira.
+Backend completo para o desafio técnico da Jungle Gaming. O serviço processa apostas por HTTP e SQS com precisão monetária, concorrência por wallet, idempotência persistente, inbox/outbox transacionais, recuperação de falhas, ledger auditável e reconciliação financeira.
 
 ## Etapa atual
 
@@ -9,6 +9,7 @@ Implementado:
 - Bun 1.4.4, NestJS 12 e TypeScript 6 em modo estrito;
 - PostgreSQL 17 e LocalStack Community com SQS no Docker Compose;
 - fila FIFO de transações e fila FIFO de mensagens mortas (DLQ);
+- fila FIFO de eventos publicados pela outbox;
 - configuração do MikroORM e migração inicial reversível;
 - restrições de banco para saldo não negativo, unicidade e imutabilidade do ledger;
 - `Money` independente de framework e com aritmética decimal exata;
@@ -18,9 +19,14 @@ Implementado:
 - `ProcessWagerTransactionUseCase` com hash canônico, replay persistente, lock pessimista por wallet e transação SQL atômica;
 - endpoints HTTP para submissão de apostas e consultas de wallet e transação;
 - paginação estável do ledger por cursor opaco e reconciliação exata entre saldo e lançamentos;
-- endpoints de liveness e readiness.
+- consumer SQS com inbox persistente e ACK somente depois do commit;
+- eventos concretos e versionados persistidos na outbox dentro da transação financeira;
+- publishers concorrentes com `SKIP LOCKED`, lease, retry e recuperação após queda;
+- worker de referências fora de ordem com backoff e rejeição auditável após oito tentativas;
+- logs JSON, métricas Prometheus, liveness e readiness;
+- testes reais de concorrência com três instâncias, LocalStack e PostgreSQL.
 
-O processamento de apostas está disponível por HTTP. A entrada SQS, inbox, outbox e publicação de eventos pertencem às próximas etapas. Consulte `IMPLEMENTATION_PLAN.md` para acompanhar a sequência de implementação.
+Consulte `IMPLEMENTATION_PLAN.md` para o histórico de validação, `ARCHITECTURE.md` para as decisões técnicas, `REQUIREMENTS_TRACEABILITY.md` para a cobertura dos requisitos e `DEMO.md` para o roteiro de apresentação.
 
 ## Execução com Docker
 
@@ -30,6 +36,7 @@ O único pré-requisito na máquina é o Docker.
 docker compose up --build -d
 curl http://localhost:3000/health/live
 curl http://localhost:3000/health/ready
+curl http://localhost:3000/metrics
 ```
 
 Resposta esperada dos endpoints de saúde:
@@ -66,6 +73,8 @@ Com os serviços do Compose em execução, rode os testes de integração reais:
 
 ```bash
 docker compose exec app bun run test:integration
+docker compose exec app bun run test:distributed
+docker compose exec app bun run test:audit
 ```
 
 ## Criar uma wallet
@@ -149,7 +158,42 @@ GET /wagering/transactions/:transactionId
 GET /providers/:providerId/wagering/transactions/:externalTransactionId
 ```
 
-Payloads inválidos utilizam o código estável `VALIDATION_ERROR`. O consumer SQS reutilizará o mesmo `ProcessWagerTransactionUseCase` da API.
+Payloads inválidos utilizam o código estável `VALIDATION_ERROR`. HTTP e SQS reutilizam o mesmo `ProcessWagerTransactionUseCase`.
+
+## Processamento por SQS
+
+A fila de entrada é `wager-transactions.fifo` e sua DLQ é `wager-transactions-dlq.fifo`. O corpo segue o envelope abaixo:
+
+```json
+{
+  "messageId": "msg-123",
+  "type": "WagerTransactionRequested",
+  "occurredAt": "2026-10-28T15:00:00.000Z",
+  "data": {
+    "providerId": "provider-a",
+    "externalTransactionId": "transaction-123",
+    "idempotencyKey": "provider-a:transaction-123",
+    "playerId": "0192f28f-5dc0-7d58-bdb2-814ad6a0f4a1",
+    "walletId": "0192f291-27dd-7d3f-8071-5f8685deef37",
+    "roundId": "round-987",
+    "gameId": "fortune-chimp",
+    "kind": "BET",
+    "money": { "amount": "25.00", "currency": "BRL" }
+  }
+}
+```
+
+O hash do envelope é persistido na inbox por `(consumerName, messageId)`. Inbox, transação, saldo, ledger e outbox usam a mesma transação PostgreSQL. Uma redelivery retorna replay e não repete o efeito financeiro. Mensagens que falham não recebem ACK; a política da fila tenta cinco entregas e então move a mensagem para a DLQ. No `SIGTERM`, o long polling é cancelado e mensagens em andamento terminam antes do encerramento.
+
+## Transactional Outbox
+
+Os eventos `WagerTransactionProcessed`, `WagerTransactionRejected`, `WagerTransactionPendingReference` e `WalletBalanceChanged` possuem classes concretas, versão e IDs determinísticos por transição. O publisher envia os envelopes para `wager-events.fifo` somente depois do commit financeiro.
+
+Múltiplos publishers reservam lotes com `FOR UPDATE SKIP LOCKED`. O lease expira em 30 segundos; se uma instância cair, outra recupera o evento. Falhas recebem backoff exponencial de até cinco minutos. A entrega é *at-least-once*: uma queda depois do envio e antes de `published_at` pode republicar o mesmo `eventId`, portanto consumidores também devem ser idempotentes.
+
+## Referências fora de ordem
+
+`REFUND`, `ROLLBACK` ou `WIN` com referência declarada e ainda ausente ficam em `PENDING_REFERENCE`. O worker consulta o índice parcial, usa `SKIP LOCKED`, tenta novamente com backoff de 5 segundos até 5 minutos e limita o fluxo a oito tentativas. Quando a referência aparece, a mesma regra financeira do domínio é executada; quando expira, a transação termina em `REJECTED` com `REFERENCE_NOT_FOUND` e evento correspondente.
 
 ## Ledger paginado
 
@@ -208,5 +252,8 @@ As migrações são transacionais, versionadas e reversíveis. O serviço de des
 
 - `GET /health/live`: verifica se o processo consegue responder às requisições.
 - `GET /health/ready`: verifica a conexão com o PostgreSQL e a fila SQS principal.
+- `GET /metrics`: expõe métricas no formato texto do Prometheus.
+
+As métricas cobrem transações por status e origem, replays idempotentes, retries do consumer e da outbox, DLQ, conflitos concorrentes, atraso da outbox, divergências de reconciliação e latência de processamento. Logs de produção são JSON e carregam os identificadores disponíveis sem registrar payload financeiro completo.
 
 Os endpoints de saúde não exigem autenticação. Como autenticação não pontua no desafio, ela permanecerá como um ponto explícito de extensão para integração futura com um provedor OIDC externo.

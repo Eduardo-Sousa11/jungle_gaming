@@ -82,15 +82,27 @@ O caso de uso consulta idempotência e ID externo antes do lock para responder r
 
 Wallet, `WagerTransaction` e `WalletLedgerEntry` são persistidos na mesma transação. Uma falha no ledger reverte também o insert da transação e a atualização do saldo. O snapshot da resposta armazena o saldo observado no processamento; por isso um replay posterior não devolve o saldo atual da wallet.
 
-## Semântica de entrega planejada
+## Inbox, consumer SQS e atomicidade
 
-Quando inbox e outbox forem implementados, eles participarão da mesma transação PostgreSQL das alterações financeiras e do ledger. A entrega da outbox será pelo menos uma vez (*at-least-once*): publishers concorrentes reservarão registros prontos com lease/`SKIP LOCKED`. Uma falha após a publicação e antes da confirmação do registro pode duplicar um evento; por isso, IDs de eventos e consumidores devem ser idempotentes.
+O `WagerSqsMessageHandler` valida o envelope e chama o mesmo `ProcessWagerTransactionUseCase` usado pela API. O registro da inbox é criado antes da regra financeira, mas permanece na mesma transação PostgreSQL; qualquer erro desfaz inbox, transação, wallet, ledger e outbox. O ACK do SQS só ocorre depois do retorno do commit. Uma redelivery com o mesmo hash devolve replay; o mesmo `messageId` com outro hash é conflito.
+
+Falhas de processamento não recebem ACK. A visibilidade da mensagem permite nova entrega e a redrive policy nativa move a mensagem para a DLQ após cinco recebimentos. No shutdown, o receive de long polling é abortado e o processo aguarda as mensagens já iniciadas.
+
+## Transactional Outbox
+
+Cada resultado cria subclasses concretas e versionadas de `IntegrationEvent`. IDs são derivados deterministicamente da transação e da transição; isso estabiliza a identidade do evento durante retries. `WagerTransactionProcessed`, `WagerTransactionRejected`, `WagerTransactionPendingReference` e `WalletBalanceChanged` são gravados junto da operação financeira.
+
+Publishers concorrentes reservam eventos com `FOR UPDATE SKIP LOCKED`. O lease de 30 segundos permite que outra instância recupere trabalho abandonado. Falhas limpam o lock e agendam backoff exponencial. A entrega é pelo menos uma vez (*at-least-once*): uma falha depois do envio e antes de `published_at` pode duplicar a publicação, portanto o `eventId` é a chave idempotente do consumidor.
 
 O agrupamento do SQS FIFO é apenas uma otimização. Constraints e locks do PostgreSQL continuam sendo a fonte de correção.
 
+## Referências pendentes
+
+O worker seleciona transações vencidas por `next_reference_attempt_at` com `FOR UPDATE SKIP LOCKED`. Cada tentativa ocorre em transação própria, bloqueia somente a wallet correspondente e reutiliza o `WagerOperationProcessor`. O backoff começa em cinco segundos, termina em cinco minutos e o limite é oito tentativas. O esgotamento produz `REJECTED/REFERENCE_NOT_FOUND`; nenhuma transação permanece pendente indefinidamente.
+
 ## API HTTP
 
-`WageringController` recebe o header obrigatório `Idempotency-Key`, valida o DTO e delega integralmente ao `ProcessWagerTransactionUseCase`. O controller não contém regra financeira. O futuro consumer SQS chamará o mesmo caso de uso.
+`WageringController` recebe o header obrigatório `Idempotency-Key`, valida o DTO e delega integralmente ao `ProcessWagerTransactionUseCase`. O controller não contém regra financeira. O consumer SQS chama o mesmo caso de uso com contexto de inbox.
 
 Os resultados são diferenciados por status HTTP: processada `200`, referência pendente `202`, payload inválido `400`, recurso ausente `404`, conflito persistente `409`, rejeição de negócio `422` e indisponibilidade `503`. Erros automáticos de DTO seguem o envelope com código `VALIDATION_ERROR`; os demais erros expõem códigos estáveis específicos.
 
@@ -102,12 +114,16 @@ O ledger é ordenado por `(created_at DESC, id DESC)`. O cursor Base64URL carreg
 
 A reconciliação lê o saldo armazenado e agrega `NUMERIC` diretamente no PostgreSQL, mantendo valores monetários como strings decimais nas fronteiras. A aplicação reconstrói o saldo por `créditos - débitos`, calcula a diferença como `saldo armazenado - saldo calculado` com `Money` e informa quantos lançamentos foram verificados.
 
-Uma divergência não executa correção automática. O monitor registra um evento estruturado sem incluir os valores financeiros e incrementa um contador local da instância; a futura etapa geral de observabilidade publicará esse contador no mecanismo de métricas do serviço.
+Uma divergência não executa correção automática. O monitor registra um evento estruturado sem incluir os valores financeiros e incrementa `reconciliation_divergences_total`.
+
+## Observabilidade
+
+O processo usa logger JSON. Operações carregam, quando disponíveis, `correlationId`, `messageId`, `transactionId`, `walletId` e `providerId`, sem payload monetário completo. `GET /metrics` expõe contadores e gauges compatíveis com Prometheus para status, duplicatas, retries, DLQ, concorrência, latência, reconciliação e atraso da outbox. Liveness avalia o processo; readiness consulta PostgreSQL e SQS separadamente.
 
 ## Decisão sobre autenticação
 
 A autenticação foi retirada das prioridades de implementação dos três dias porque o desafio oficial não atribui pontos a ela. Os endpoints de saúde permanecem públicos e o SQS é tratado como canal interno. A camada HTTP manterá um ponto de extensão de guard para um provedor OIDC externo, como Keycloak. Nenhum sistema local de senhas será desenvolvido.
 
-## Limitações atuais
+## Limitações e trade-offs
 
-A versão atual disponibiliza criação e consulta de wallet, submissão de apostas, consultas de transação, paginação do ledger e reconciliação financeira. Inbox, outbox, consumers e workers ainda permanecem como `TODO` no `IMPLEMENTATION_PLAN.md`.
+A autenticação foi deliberadamente deixada como ponto de extensão OIDC. Métricas ficam em memória por instância e devem ser coletadas individualmente pelo Prometheus. A entrega da outbox não promete *exactly-once* externo; ela promete não perder eventos confirmados e fornece identidade estável para deduplicação. Teste de carga é diferencial opcional e não faz parte da entrega atual.
