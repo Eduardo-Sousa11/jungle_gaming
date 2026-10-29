@@ -28,6 +28,10 @@ Implementado:
 
 Consulte `IMPLEMENTATION_PLAN.md` para o histórico de validação, `ARCHITECTURE.md` para as decisões técnicas, `REQUIREMENTS_TRACEABILITY.md` para a cobertura dos requisitos e `DEMO.md` para o roteiro de apresentação.
 
+## Convenção de branches
+
+A `main` é a branch principal e recebe somente alterações revisadas por Pull Request. As branches novas usam nomes em português, sem acentos, como `funcionalidade/processar-apostas`, `correcao/ajustar-saldo`, `ajuste/padronizar-mensagens-portugues` e `documentacao/atualizar-readme`.
+
 ## Execução com Docker
 
 O único pré-requisito na máquina é o Docker.

@@ -26,7 +26,7 @@ import { Sha256PayloadHasher } from '../../src/infrastructure/shared/sha256-payl
 import { SystemClock } from '../../src/infrastructure/shared/system-clock';
 import { UuidGenerator } from '../../src/infrastructure/shared/uuid-generator';
 
-describe('ProcessWagerTransactionUseCase with PostgreSQL', () => {
+describe('ProcessWagerTransactionUseCase com PostgreSQL', () => {
   let orm: MikroORM;
 
   beforeAll(async () => {
@@ -38,7 +38,7 @@ describe('ProcessWagerTransactionUseCase with PostgreSQL', () => {
     await orm.close(true);
   });
 
-  test('applies exactly one debit for fifty concurrent duplicates', async () => {
+  test('aplica exatamente um débito para cinquenta duplicatas concorrentes', async () => {
     const context = await createWallet('100.00');
     const input = wagerInput(context, {
       externalTransactionId: randomUUID(),
@@ -81,7 +81,7 @@ describe('ProcessWagerTransactionUseCase with PostgreSQL', () => {
     ).toBe(2);
   });
 
-  test('serializes two concurrent bets that dispute the same balance', async () => {
+  test('serializa duas apostas concorrentes que disputam o mesmo saldo', async () => {
     const context = await createWallet('100.00');
     const firstInput = wagerInput(context, {
       externalTransactionId: randomUUID(),
@@ -124,7 +124,7 @@ describe('ProcessWagerTransactionUseCase with PostgreSQL', () => {
     ).toBe(2);
   });
 
-  test('rejects a divergent payload for a persisted idempotency key', async () => {
+  test('rejeita um payload divergente para uma chave de idempotência persistida', async () => {
     const context = await createWallet('100.00');
     const input = wagerInput(context, {
       externalTransactionId: randomUUID(),
@@ -140,7 +140,7 @@ describe('ProcessWagerTransactionUseCase with PostgreSQL', () => {
     ).rejects.toBeInstanceOf(WagerIdempotencyConflictError);
   });
 
-  test('replays the original balance after later wallet movements', async () => {
+  test('reproduz o saldo original após movimentações posteriores da carteira', async () => {
     const context = await createWallet('100.00');
     const firstInput = wagerInput(context, {
       externalTransactionId: randomUUID(),
@@ -167,7 +167,7 @@ describe('ProcessWagerTransactionUseCase with PostgreSQL', () => {
     expect(wallet.balance).toBe('65.00');
   });
 
-  test('allows the same idempotency key for different providers', async () => {
+  test('permite a mesma chave de idempotência para provedores diferentes', async () => {
     const context = await createWallet('100.00');
     const sharedIdempotencyKey = randomUUID();
     const sharedExternalTransactionId = randomUUID();
@@ -195,7 +195,7 @@ describe('ProcessWagerTransactionUseCase with PostgreSQL', () => {
     expect(wallet.balance).toBe('80.00');
   });
 
-  test('allows only one concurrent refund of the same kind', async () => {
+  test('permite somente um reembolso concorrente do mesmo tipo', async () => {
     const context = await createWallet('100.00');
     const betInput = wagerInput(context, {
       externalTransactionId: randomUUID(),
@@ -250,7 +250,7 @@ describe('ProcessWagerTransactionUseCase with PostgreSQL', () => {
     ).toBe(3);
   });
 
-  test('preserves consistency with three independent application instances', async () => {
+  test('preserva a consistência com três instâncias independentes da aplicação', async () => {
     const context = await createWallet('100.00');
     const instances = await Promise.all([
       MikroORM.init(mikroOrmConfig),
@@ -298,7 +298,7 @@ describe('ProcessWagerTransactionUseCase with PostgreSQL', () => {
     }
   });
 
-  test('rolls back transaction and wallet update when ledger persistence fails', async () => {
+  test('reverte a transação e a atualização da carteira quando a persistência do ledger falha', async () => {
     const context = await createWallet('100.00');
     const existingLedgerId = randomUUID();
     await createWagerUseCase(
@@ -402,7 +402,7 @@ class SequenceIdGenerator implements IdGenerator {
   generate(): string {
     const id = this.ids[this.cursor];
     if (id === undefined) {
-      throw new Error('No identifier configured for this integration test');
+      throw new Error('Nenhum identificador foi configurado para este teste de integração');
     }
     this.cursor += 1;
     return id;

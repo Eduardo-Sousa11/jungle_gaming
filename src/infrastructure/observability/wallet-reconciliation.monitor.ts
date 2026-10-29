@@ -19,7 +19,7 @@ export class NestWalletReconciliationMonitor
     this.divergenceTotal += 1;
     this.metrics.increment('reconciliation_divergences_total');
     this.logger.warn({
-      event: 'wallet_reconciliation_divergence',
+      event: 'divergencia_na_reconciliacao_da_carteira',
       walletId: divergence.walletId,
       checkedEntries: divergence.checkedEntries,
       reconciliationDivergenceTotal: this.divergenceTotal,

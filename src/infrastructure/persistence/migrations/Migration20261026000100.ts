@@ -127,7 +127,7 @@ export class Migration20261026000100 extends Migration {
       language plpgsql
       as $$
       begin
-        raise exception 'wallet ledger entries are immutable';
+        raise exception 'os lançamentos do ledger da carteira são imutáveis';
       end;
       $$;
     `);

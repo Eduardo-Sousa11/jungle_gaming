@@ -18,7 +18,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   localstack:
-    # Pinned Community image; it does not require a commercial auth token.
+    # Imagem Community fixada; não exige token de autenticação comercial.
     image: localstack/localstack:4.9.2
     environment:
       SERVICES: sqs

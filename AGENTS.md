@@ -39,5 +39,5 @@ docker compose up --build app
 
 - Implemente uma etapa rastreável por vez.
 - Execute a verificação de tipos e os testes relevantes antes de cada commit.
-- Utilize branches de funcionalidade e faça merge de Pull Requests revisados na `main`.
+- Utilize branches de funcionalidade com nomes em português e faça merge de Pull Requests revisados na `main`.
 - Preserve alterações existentes e mantenha os commits limitados à etapa ativa.

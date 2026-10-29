@@ -54,7 +54,7 @@ const canonicalHasher: PayloadHasher = {
 };
 
 describe('ProcessWagerTransactionUseCase', () => {
-  test('processes and saves a new financial transaction', async () => {
+  test('processa e salva uma nova transação financeira', async () => {
     const session = new InMemoryWagerProcessingSession(openWallet('100.00'));
     const useCase = createUseCase(session, ['transaction-1', 'ledger-1']);
 
@@ -71,7 +71,7 @@ describe('ProcessWagerTransactionUseCase', () => {
     expect(session.saves[0]?.ledgerEntry?.id).toBe('ledger-1');
   });
 
-  test('replays the original snapshot without locking or applying another debit', async () => {
+  test('reproduz o snapshot original sem bloquear ou aplicar outro débito', async () => {
     const wallet = openWallet('100.00');
     const session = new InMemoryWagerProcessingSession(wallet);
     const useCase = createUseCase(session, ['transaction-1', 'ledger-1']);
@@ -89,7 +89,7 @@ describe('ProcessWagerTransactionUseCase', () => {
     expect(session.saves).toHaveLength(1);
   });
 
-  test('rejects the same idempotency key with a different business payload', async () => {
+  test('rejeita a mesma chave de idempotência com outro payload de negócio', async () => {
     const session = new InMemoryWagerProcessingSession(openWallet('100.00'));
     const useCase = createUseCase(session, ['transaction-1', 'ledger-1']);
     await useCase.execute(BASE_INPUT);
@@ -103,7 +103,7 @@ describe('ProcessWagerTransactionUseCase', () => {
     expect(session.saves).toHaveLength(1);
   });
 
-  test('rejects the same provider transaction with another idempotency key', async () => {
+  test('rejeita a mesma transação do provedor com outra chave de idempotência', async () => {
     const session = new InMemoryWagerProcessingSession(openWallet('100.00'));
     const useCase = createUseCase(session, ['transaction-1', 'ledger-1']);
     await useCase.execute(BASE_INPUT);
@@ -117,7 +117,7 @@ describe('ProcessWagerTransactionUseCase', () => {
     expect(session.saves).toHaveLength(1);
   });
 
-  test('scopes idempotency and external transaction identifiers by provider', async () => {
+  test('isola por provedor os identificadores de idempotência e transação externa', async () => {
     const session = new InMemoryWagerProcessingSession(openWallet('100.00'));
     const useCase = createUseCase(session, [
       'transaction-1',
@@ -138,7 +138,7 @@ describe('ProcessWagerTransactionUseCase', () => {
     expect(session.saves).toHaveLength(2);
   });
 
-  test('returns a replay discovered by the second check after locking the wallet', async () => {
+  test('retorna uma repetição descoberta na segunda verificação após bloquear a carteira', async () => {
     const session = new InMemoryWagerProcessingSession(openWallet('100.00'));
     session.existingAfterLock = storedTransaction({
       transactionId: 'winner-transaction',
@@ -155,7 +155,7 @@ describe('ProcessWagerTransactionUseCase', () => {
     expect(session.saves).toHaveLength(0);
   });
 
-  test('replays a matching external transaction that becomes visible between reads', async () => {
+  test('reproduz uma transação externa correspondente que fica visível entre leituras', async () => {
     const session = new InMemoryWagerProcessingSession(openWallet('100.00'));
     session.existingByExternalOnly = storedTransaction({
       transactionId: 'concurrent-winner',
@@ -172,7 +172,7 @@ describe('ProcessWagerTransactionUseCase', () => {
     expect(session.saves).toHaveLength(0);
   });
 
-  test('retries once when a PostgreSQL uniqueness race is reported', async () => {
+  test('tenta novamente uma vez quando o PostgreSQL informa disputa de unicidade', async () => {
     const session = new InMemoryWagerProcessingSession(openWallet('100.00'));
     const repository = new InMemoryWagerProcessingRepository(session);
     repository.racesBeforeWork = 1;
@@ -189,7 +189,7 @@ describe('ProcessWagerTransactionUseCase', () => {
     expect(session.saves).toHaveLength(1);
   });
 
-  test('does not retry a persistence race more than once', async () => {
+  test('não repete uma disputa de persistência mais de uma vez', async () => {
     const session = new InMemoryWagerProcessingSession(openWallet('100.00'));
     const repository = new InMemoryWagerProcessingRepository(session);
     repository.racesBeforeWork = 2;
@@ -201,7 +201,7 @@ describe('ProcessWagerTransactionUseCase', () => {
     expect(repository.transactionalCalls).toBe(2);
   });
 
-  test('fails without saving when the wallet does not exist', async () => {
+  test('falha sem salvar quando a carteira não existe', async () => {
     const session = new InMemoryWagerProcessingSession(undefined);
     const useCase = createUseCase(session, []);
 
@@ -316,7 +316,7 @@ class SequenceIdGenerator implements IdGenerator {
   generate(): string {
     const id = this.ids[this.cursor];
     if (id === undefined) {
-      throw new Error('No identifier configured for this test');
+      throw new Error('Nenhum identificador foi configurado para este teste');
     }
     this.cursor += 1;
     return id;

@@ -29,7 +29,9 @@ export class JsonLogger implements LoggerService {
     const entry = {
       timestamp: new Date().toISOString(),
       level,
-      ...(isRecord(message) ? message : { message: normalize(message) }),
+      ...(isRecord(message)
+        ? message
+        : { message: translateSystemMessage(normalize(message)) }),
       ...(optional.length === 0 ? {} : { context: optional.map(normalize) }),
     };
     const output = `${JSON.stringify(entry)}\n`;
@@ -48,6 +50,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function normalize(value: unknown): unknown {
   if (value instanceof Error) {
     return { name: value.name, message: value.message, stack: value.stack };
+  }
+  return value;
+}
+
+function translateSystemMessage(value: unknown): unknown {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  if (value === 'Starting Nest application...') {
+    return 'Iniciando a aplicação Nest...';
+  }
+  if (value === 'Nest application successfully started') {
+    return 'Aplicação Nest iniciada com sucesso';
+  }
+  if (value.endsWith(' dependencies initialized')) {
+    return `Dependências de ${value.slice(0, -' dependencies initialized'.length)} inicializadas`;
+  }
+  const mappedRoute = /^Mapped (.+) route$/.exec(value);
+  if (mappedRoute !== null) {
+    return `Rota ${mappedRoute[1]} mapeada`;
   }
   return value;
 }

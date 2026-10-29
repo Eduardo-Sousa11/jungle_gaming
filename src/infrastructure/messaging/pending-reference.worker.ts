@@ -55,7 +55,7 @@ export class PendingReferenceWorker
         if (count === 0) await delay(this.pollInterval);
       } catch (error) {
         this.logger.error({
-          event: 'pending_reference_batch_failed',
+          event: 'falha_no_lote_de_referencias_pendentes',
           errorCode: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
         });
         await delay(this.pollInterval);

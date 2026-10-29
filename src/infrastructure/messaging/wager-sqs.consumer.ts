@@ -83,7 +83,7 @@ export class WagerSqsConsumer
           return;
         }
         this.logger.error({
-          event: 'sqs_consumer_poll_failed',
+          event: 'falha_na_consulta_do_consumidor_sqs',
           errorCode: errorCode(error),
         });
         await new Promise<void>((resolve) => setTimeout(resolve, 1_000));
@@ -119,7 +119,7 @@ export class WagerSqsConsumer
         this.metrics.increment('wager_duplicates_total', { source: 'sqs' });
       }
       this.logger.log({
-        event: 'sqs_wager_processed',
+        event: 'aposta_sqs_processada',
         messageId: message.MessageId,
         transactionId: result.transactionId,
         status: result.status,
@@ -135,12 +135,12 @@ export class WagerSqsConsumer
         this.metrics.increment('wager_dlq_total');
       }
       this.logger.warn({
-        event: 'sqs_wager_processing_failed',
+        event: 'falha_no_processamento_da_aposta_sqs',
         messageId: message.MessageId,
         receiveCount,
         errorCode: errorCode(error),
       });
-      // Sem ACK: a visibility timeout permite retry e a redrive policy envia à DLQ.
+      // Sem ACK: o tempo de visibilidade permite nova tentativa e a política de redirecionamento envia à DLQ.
     }
   }
 
@@ -152,7 +152,7 @@ export class WagerSqsConsumer
       new GetQueueUrlCommand({ QueueName: this.queueName }),
     );
     if (result.QueueUrl === undefined) {
-      throw new Error(`SQS queue ${this.queueName} has no URL`);
+      throw new Error(`A fila SQS ${this.queueName} não possui URL`);
     }
     this.queueUrl = result.QueueUrl;
     return result.QueueUrl;

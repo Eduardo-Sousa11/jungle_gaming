@@ -1,5 +1,5 @@
 export class InvalidLedgerCursorError extends Error {
-  constructor(message = 'The ledger cursor is invalid') {
+  constructor(message = 'O cursor do ledger é inválido') {
     super(message);
     this.name = 'InvalidLedgerCursorError';
   }
@@ -7,7 +7,7 @@ export class InvalidLedgerCursorError extends Error {
 
 export class InvalidLedgerPageLimitError extends Error {
   constructor(public readonly limit: number) {
-    super('Ledger page limit must be an integer between 1 and 100');
+    super('O limite da página do ledger deve ser um número inteiro entre 1 e 100');
     this.name = 'InvalidLedgerPageLimitError';
   }
 }

@@ -1,44 +1,44 @@
 # Plano de implementação
 
-Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
+Valores permitidos para situação: `A_FAZER`, `EM_ANDAMENTO`, `CONCLUÍDO`, `BLOQUEADO`.
 
 ## Fundação e núcleo financeiro
 
-| Tarefa | Prioridade | Status | Critério de aceite |
+| Tarefa | Prioridade | Situação | Critério de aceite |
 |---|---|---|---|
-| Configurar Bun, NestJS e TypeScript strict | Crítica | DONE | Build e verificação de tipos aprovados |
-| Configurar PostgreSQL e LocalStack no Compose | Crítica | DONE | Ambos os containers ficam saudáveis |
-| Configurar MikroORM e migração inicial reversível | Crítica | DONE | Ciclo de migração up/down/up aprovado |
-| Implementar `Money` independente de framework | Eliminatória | DONE | Testes unitários de precisão decimal aprovados |
-| Implementar Wallet e lançamento de abertura | Crítica | DONE | Criação atômica e versão iniciada em 1 |
-| Implementar máquina de estados da transação | Crítica | DONE | Transições terminais inválidas são impedidas |
-| Implementar BET, WIN, LOSS, REFUND e ROLLBACK | Eliminatória | DONE | Testes da matriz de operações aprovados |
-| Implementar idempotência persistente e lock da wallet | Eliminatória | DONE | Testes de duplicação e corrida aprovados |
+| Configurar Bun, NestJS e TypeScript estrito | Crítica | CONCLUÍDO | Compilação e verificação de tipos aprovadas |
+| Configurar PostgreSQL e LocalStack no Compose | Crítica | CONCLUÍDO | Ambos os contêineres ficam saudáveis |
+| Configurar MikroORM e migração inicial reversível | Crítica | CONCLUÍDO | Ciclo de migração de avanço/reversão/avanço aprovado |
+| Implementar `Money` independente de framework | Eliminatória | CONCLUÍDO | Testes unitários de precisão decimal aprovados |
+| Implementar carteira e lançamento de abertura | Crítica | CONCLUÍDO | Criação atômica e versão iniciada em 1 |
+| Implementar máquina de estados da transação | Crítica | CONCLUÍDO | Transições terminais inválidas são impedidas |
+| Implementar BET, WIN, LOSS, REFUND e ROLLBACK | Eliminatória | CONCLUÍDO | Testes da matriz de operações aprovados |
+| Implementar idempotência persistente e bloqueio da carteira | Eliminatória | CONCLUÍDO | Testes de duplicação e corrida aprovados |
 
 ## API, mensageria e resiliência
 
-| Tarefa | Prioridade | Status | Critério de aceite |
+| Tarefa | Prioridade | Situação | Critério de aceite |
 |---|---|---|---|
-| Implementar endpoints HTTP de submissão e consulta | Alta | DONE | Testes de contrato aprovados |
-| Implementar cursor do ledger e reconciliação | Alta | DONE | Paginação estável e reconstrução exata |
-| Implementar consumer SQS e inbox transacional | Crítica | DONE | Redelivery não duplica efeitos |
-| Implementar publisher da outbox transacional | Eliminatória | DONE | Falha após o commit não perde eventos |
-| Implementar worker de referências pendentes | Crítica | DONE | Referências fora de ordem são resolvidas |
-| Implementar retry, DLQ e graceful shutdown | Alta | DONE | Testes de integração dos fluxos de falha aprovados |
-| Implementar logs estruturados, métricas e health | Alta | DONE | Sinais obrigatórios disponibilizados |
+| Implementar endpoints HTTP de submissão e consulta | Alta | CONCLUÍDO | Testes de contrato aprovados |
+| Implementar cursor do ledger e reconciliação | Alta | CONCLUÍDO | Paginação estável e reconstrução exata |
+| Implementar consumidor SQS e inbox transacional | Crítica | CONCLUÍDO | Reentrega não duplica efeitos |
+| Implementar publicador da outbox transacional | Eliminatória | CONCLUÍDO | Falha após o commit não perde eventos |
+| Implementar processo de referências pendentes | Crítica | CONCLUÍDO | Referências fora de ordem são resolvidas |
+| Implementar novas tentativas, DLQ e encerramento gracioso | Alta | CONCLUÍDO | Testes de integração dos fluxos de falha aprovados |
+| Implementar logs estruturados, métricas e saúde | Alta | CONCLUÍDO | Sinais obrigatórios disponibilizados |
 
 ## Validação distribuída e entrega
 
-| Tarefa | Prioridade | Status | Critério de aceite |
+| Tarefa | Prioridade | Situação | Critério de aceite |
 |---|---|---|---|
-| Criar suíte de integração com PostgreSQL/LocalStack | Eliminatória | DONE | Testes utilizam containers reais |
-| Testar cinquenta requisições duplicadas concorrentes | Eliminatória | DONE | Exatamente um efeito financeiro |
-| Testar corrida de saldo insuficiente na mesma wallet | Eliminatória | DONE | Uma processada, uma rejeitada e saldo 20,00 |
-| Testar três instâncias da aplicação | Eliminatória | DONE | Consistência distribuída preservada |
-| Testar recuperação de falhas do consumer e publisher | Crítica | DONE | Reinicialização converge sem perder efeitos |
-| Executar auditoria final de reconciliação | Crítica | DONE | Toda wallet equivale ao ledger reconstruído |
-| Finalizar documentação README e ARCHITECTURE | Alta | DONE | Setup, decisões e limitações documentados |
-| Criar roteiro de demonstração técnica | Média | DONE | Cenários principais são reproduzíveis |
+| Criar suíte de integração com PostgreSQL/LocalStack | Eliminatória | CONCLUÍDO | Testes utilizam contêineres reais |
+| Testar cinquenta requisições duplicadas concorrentes | Eliminatória | CONCLUÍDO | Exatamente um efeito financeiro |
+| Testar corrida de saldo insuficiente na mesma carteira | Eliminatória | CONCLUÍDO | Uma processada, uma rejeitada e saldo 20,00 |
+| Testar três instâncias da aplicação | Eliminatória | CONCLUÍDO | Consistência distribuída preservada |
+| Testar recuperação de falhas do consumidor e publicador | Crítica | CONCLUÍDO | Reinicialização converge sem perder efeitos |
+| Executar auditoria final de reconciliação | Crítica | CONCLUÍDO | Toda carteira equivale ao ledger reconstruído |
+| Finalizar documentação README e arquitetura | Alta | CONCLUÍDO | Configuração, decisões e limitações documentadas |
+| Criar roteiro de demonstração técnica | Média | CONCLUÍDO | Cenários principais são reproduzíveis |
 
 ## Riscos da etapa atual
 
@@ -144,3 +144,18 @@ Valores permitidos para status: `TODO`, `IN_PROGRESS`, `DONE`, `BLOCKED`.
 - Observabilidade: logs JSON, métricas Prometheus, liveness e readiness validados no Compose.
 - Graceful shutdown: container encerrou em 2 segundos e voltou a ficar pronto após reinício.
 - Documentos finais: README, arquitetura, matriz de rastreabilidade e roteiro de demonstração em português.
+
+### Padronização de idioma — 28/10/2026
+
+- Branch criada em português: `ajuste/padronizar-mensagens-portugues`.
+- Mensagens de domínio, aplicação, infraestrutura, HTTP e validação padronizadas em português.
+- Filtro HTTP global incluído para traduzir respostas padrão de rota inexistente e erro interno.
+- Validação de UUID e detalhes do `class-validator` retornam mensagens em português.
+- Migração de sincronização aplicada para traduzir a mensagem da proteção imutável do ledger em bancos existentes.
+- Eventos descritivos dos logs e mensagens conhecidas de inicialização do NestJS traduzidos.
+- Nomes descritivos dos testes, metadados e documentação de versionamento revisados.
+- Contratos técnicos permaneceram estáveis: rotas, propriedades JSON, códigos de erro, métricas, estados, tipos de operação e tipos de evento.
+- `bun run check`: aprovado, com 138 testes e 0 falhas.
+- `bun run build`: aprovado.
+- `bun run test:integration`: 32 aprovados, 0 falhas e 836 asserções com PostgreSQL 17 e LocalStack reais.
+- Aplicação reiniciada e `/health/ready` respondeu com sucesso; UUID inválido retornou mensagem em português.

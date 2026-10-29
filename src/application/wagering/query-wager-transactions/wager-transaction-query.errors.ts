@@ -1,6 +1,6 @@
 export class WagerTransactionNotFoundError extends Error {
   constructor() {
-    super('Wager transaction was not found');
+    super('A transação de aposta não foi encontrada');
     this.name = 'WagerTransactionNotFoundError';
   }
 }

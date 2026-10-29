@@ -8,7 +8,6 @@ import {
   HttpStatus,
   NotFoundException,
   Param,
-  ParseUUIDPipe,
   Post,
   Query,
 } from '@nestjs/common';
@@ -39,6 +38,7 @@ import {
 } from '../../../domain/wallet/wallet.errors';
 import { CreateWalletDto } from './create-wallet.dto';
 import { GetWalletLedgerQueryDto } from './get-wallet-ledger-query.dto';
+import { createUuidValidationPipe } from '../shared/uuid-validation.pipe';
 
 @Controller('wallets')
 export class WalletController {
@@ -64,7 +64,7 @@ export class WalletController {
       if (error instanceof WalletAlreadyExistsError) {
         throw new ConflictException({
           code: 'WALLET_ALREADY_EXISTS',
-          message: 'A wallet already exists for this player and currency',
+          message: 'Já existe uma carteira para este jogador e esta moeda',
         });
       }
 
@@ -81,7 +81,7 @@ export class WalletController {
 
   @Get(':walletId/ledger')
   async findLedger(
-    @Param('walletId', new ParseUUIDPipe({ version: 'all' })) walletId: string,
+    @Param('walletId', createUuidValidationPipe()) walletId: string,
     @Query() query: GetWalletLedgerQueryDto,
   ): Promise<GetWalletLedgerOutput> {
     try {
@@ -113,7 +113,7 @@ export class WalletController {
   @Post(':walletId/reconciliation')
   @HttpCode(HttpStatus.OK)
   async reconcile(
-    @Param('walletId', new ParseUUIDPipe({ version: 'all' })) walletId: string,
+    @Param('walletId', createUuidValidationPipe()) walletId: string,
   ): Promise<ReconcileWalletOutput> {
     try {
       return await this.reconcileWallet.execute(walletId);
@@ -127,7 +127,7 @@ export class WalletController {
 
   @Get(':walletId')
   async findById(
-    @Param('walletId', new ParseUUIDPipe({ version: 'all' })) walletId: string,
+    @Param('walletId', createUuidValidationPipe()) walletId: string,
   ): Promise<WalletView> {
     try {
       return await this.getWallet.execute(walletId);

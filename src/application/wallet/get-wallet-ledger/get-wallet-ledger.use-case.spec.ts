@@ -60,7 +60,7 @@ const firstEntry = {
 } as const;
 
 describe('GetWalletLedgerUseCase', () => {
-  test('uses the default limit and emits a cursor from the last returned entry', async () => {
+  test('usa o limite padrão e emite um cursor a partir do último lançamento retornado', async () => {
     const repository = new CapturingLedgerRepository({
       entries: [firstEntry],
       hasMore: true,
@@ -82,7 +82,7 @@ describe('GetWalletLedgerUseCase', () => {
     });
   });
 
-  test('decodes a cursor into an exclusive keyset position', async () => {
+  test('decodifica um cursor para uma posição exclusiva do conjunto de chaves', async () => {
     const position = {
       walletId: 'wallet-1',
       createdAt: new Date('2026-10-28T11:00:00.000Z'),
@@ -114,7 +114,7 @@ describe('GetWalletLedgerUseCase', () => {
     expect(result).toEqual({ items: [] });
   });
 
-  test('rejects a cursor issued for another wallet', async () => {
+  test('rejeita um cursor emitido para outra carteira', async () => {
     const repository = new CapturingLedgerRepository({
       entries: [],
       hasMore: false,
@@ -134,7 +134,7 @@ describe('GetWalletLedgerUseCase', () => {
     expect(repository.query).toBeUndefined();
   });
 
-  test('rejects an out-of-range limit', async () => {
+  test('rejeita um limite fora do intervalo', async () => {
     const useCase = new GetWalletLedgerUseCase(
       new CapturingLedgerRepository(),
       new FakeLedgerCursorCodec(),
@@ -145,7 +145,7 @@ describe('GetWalletLedgerUseCase', () => {
     ).rejects.toBeInstanceOf(InvalidLedgerPageLimitError);
   });
 
-  test('reports a missing wallet', async () => {
+  test('informa uma carteira inexistente', async () => {
     const useCase = new GetWalletLedgerUseCase(
       new CapturingLedgerRepository(),
       new FakeLedgerCursorCodec(),

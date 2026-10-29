@@ -14,7 +14,7 @@ import {
   WagerTransactionStatus,
 } from '../../src/domain/wagering/wager-transaction';
 
-describe('HTTP wagering contracts', () => {
+describe('Contratos HTTP de apostas', () => {
   let app: INestApplication;
   let baseUrl: string;
   let orm: MikroORM;
@@ -32,7 +32,7 @@ describe('HTTP wagering contracts', () => {
     await app.close();
   });
 
-  test('creates and queries a wallet through HTTP', async () => {
+  test('cria e consulta uma carteira por HTTP', async () => {
     const wallet = await createWallet('100.00');
 
     const response = await fetch(`${baseUrl}/wallets/${wallet.id}`);
@@ -47,7 +47,7 @@ describe('HTTP wagering contracts', () => {
     expect(typeof body['updatedAt']).toBe('string');
   });
 
-  test('paginates the ledger with an opaque and wallet-bound cursor', async () => {
+  test('pagina o ledger com um cursor opaco e vinculado à carteira', async () => {
     const wallet = await createWallet('100.00');
     for (let index = 0; index < 3; index += 1) {
       const wagerResponse = await postWager(wagerBody(wallet), randomUUID());
@@ -104,7 +104,7 @@ describe('HTTP wagering contracts', () => {
     expect(malformedCursor['code']).toBe('INVALID_LEDGER_CURSOR');
   });
 
-  test('reconciles the stored wallet balance with the complete ledger', async () => {
+  test('reconcilia o saldo armazenado da carteira com o ledger completo', async () => {
     const wallet = await createWallet('100.00');
     const wagerResponse = await postWager(wagerBody(wallet), randomUUID());
     expect(wagerResponse.status).toBe(200);
@@ -124,7 +124,7 @@ describe('HTTP wagering contracts', () => {
     expect(body['checkedEntries']).toBe(2);
   });
 
-  test('signals a divergence without silently changing the wallet', async () => {
+  test('sinaliza uma divergência sem alterar silenciosamente a carteira', async () => {
     const wallet = await createWallet('100.00');
     const monitor = app.get(NestWalletReconciliationMonitor);
     const previousDivergences = monitor.recordedDivergences;
@@ -158,7 +158,7 @@ describe('HTTP wagering contracts', () => {
     }
   });
 
-  test('requires Idempotency-Key when submitting a wager', async () => {
+  test('exige Idempotency-Key ao enviar uma aposta', async () => {
     const wallet = await createWallet('100.00');
     const response = await fetch(`${baseUrl}/wagering/transactions`, {
       method: 'POST',
@@ -169,9 +169,10 @@ describe('HTTP wagering contracts', () => {
 
     expect(response.status).toBe(400);
     expect(body['code']).toBe('IDEMPOTENCY_KEY_REQUIRED');
+    expect(body['message']).toBe('O cabeçalho Idempotency-Key é obrigatório');
   });
 
-  test('processes, replays and queries a wager through both lookup routes', async () => {
+  test('processa, reproduz e consulta uma aposta pelas duas rotas de busca', async () => {
     const wallet = await createWallet('100.00');
     const request = wagerBody(wallet);
     const idempotencyKey = randomUUID();
@@ -206,7 +207,7 @@ describe('HTTP wagering contracts', () => {
     expect(byProvider['transactionId']).toBe(original['transactionId']);
   });
 
-  test('returns 409 for the same idempotency key with another payload', async () => {
+  test('retorna 409 para a mesma chave de idempotência com outro payload', async () => {
     const wallet = await createWallet('100.00');
     const request = wagerBody(wallet);
     const idempotencyKey = randomUUID();
@@ -225,7 +226,7 @@ describe('HTTP wagering contracts', () => {
     expect(body['code']).toBe('IDEMPOTENCY_KEY_CONFLICT');
   });
 
-  test('returns 422 for a business rejection', async () => {
+  test('retorna 422 para uma rejeição de negócio', async () => {
     const wallet = await createWallet('20.00');
     const response = await postWager(wagerBody(wallet), randomUUID());
     const body = await responseBody(response);
@@ -238,7 +239,7 @@ describe('HTTP wagering contracts', () => {
     expect(moneyAmount(body, 'balance')).toBe('20.00');
   });
 
-  test('returns 202 when a declared reference has not arrived', async () => {
+  test('retorna 202 quando uma referência declarada ainda não chegou', async () => {
     const wallet = await createWallet('100.00');
     const request = {
       ...wagerBody(wallet),
@@ -254,7 +255,7 @@ describe('HTTP wagering contracts', () => {
     expect(moneyAmount(body, 'balance')).toBe('100.00');
   });
 
-  test('distinguishes invalid payloads and missing resources', async () => {
+  test('diferencia payloads inválidos e recursos inexistentes', async () => {
     const wallet = await createWallet('100.00');
     const invalidResponse = await postWager(
       { ...wagerBody(wallet), kind: WagerTransactionKind.Opening },
@@ -263,6 +264,7 @@ describe('HTTP wagering contracts', () => {
     const invalidBody = await responseBody(invalidResponse);
     expect(invalidResponse.status).toBe(400);
     expect(invalidBody['code']).toBe('VALIDATION_ERROR');
+    expect(invalidBody['message']).toBe('A validação da requisição falhou');
 
     const unknownWalletResponse = await fetch(
       `${baseUrl}/wallets/${randomUUID()}`,
@@ -270,6 +272,7 @@ describe('HTTP wagering contracts', () => {
     const unknownWallet = await responseBody(unknownWalletResponse);
     expect(unknownWalletResponse.status).toBe(404);
     expect(unknownWallet['code']).toBe('WALLET_NOT_FOUND');
+    expect(String(unknownWallet['message'])).toContain('não foi encontrada');
 
     const unknownTransactionResponse = await fetch(
       `${baseUrl}/wagering/transactions/${randomUUID()}`,
@@ -277,9 +280,30 @@ describe('HTTP wagering contracts', () => {
     const unknownTransaction = await responseBody(unknownTransactionResponse);
     expect(unknownTransactionResponse.status).toBe(404);
     expect(unknownTransaction['code']).toBe('WAGER_TRANSACTION_NOT_FOUND');
+    expect(unknownTransaction['message']).toBe(
+      'A transação de aposta não foi encontrada',
+    );
   });
 
-  test('exposes operational metrics in Prometheus text format', async () => {
+  test('retorna em português as mensagens HTTP geradas pelo framework', async () => {
+    const invalidUuidResponse = await fetch(`${baseUrl}/wallets/uuid-invalido`);
+    const invalidUuid = await responseBody(invalidUuidResponse);
+
+    expect(invalidUuidResponse.status).toBe(400);
+    expect(invalidUuid['code']).toBe('INVALID_UUID');
+    expect(invalidUuid['message']).toBe('O parâmetro deve ser um UUID válido');
+
+    const missingRouteResponse = await fetch(`${baseUrl}/rota-inexistente`);
+    const missingRoute = await responseBody(missingRouteResponse);
+
+    expect(missingRouteResponse.status).toBe(404);
+    expect(missingRoute['message']).toBe(
+      'A rota solicitada não foi encontrada',
+    );
+    expect(missingRoute['error']).toBe('Não encontrado');
+  });
+
+  test('expõe métricas operacionais no formato de texto do Prometheus', async () => {
     const response = await fetch(`${baseUrl}/metrics`);
     const body = await response.text();
 
@@ -308,7 +332,7 @@ describe('HTTP wagering contracts', () => {
     const body = await responseBody(response);
     expect(response.status).toBe(201);
     if (typeof body['id'] !== 'string') {
-      throw new Error('Wallet response has no identifier');
+      throw new Error('A resposta da carteira não possui identificador');
     }
     return { id: body['id'], playerId };
   }
@@ -372,7 +396,7 @@ function objectArray(
     !Array.isArray(value) ||
     !value.every((item) => typeof item === 'object' && item !== null)
   ) {
-    throw new Error(`${field} is not an object array`);
+    throw new Error(`${field} não é uma lista de objetos`);
   }
   return value as ReadonlyArray<Record<string, unknown>>;
 }

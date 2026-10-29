@@ -83,12 +83,12 @@ export class Money {
 
   private static fromDecimal(value: Decimal, currency: string): Money {
     if (!value.isFinite() || value.decimalPlaces() > 2) {
-      throw new InvalidMoneyError('Money operation produced an invalid amount');
+      throw new InvalidMoneyError('A operação monetária produziu um valor inválido');
     }
 
     const integerDigits = value.abs().trunc().toFixed(0).length;
     if (integerDigits > MAX_INTEGER_DIGITS) {
-      throw new InvalidMoneyError('Money amount exceeds persistence precision');
+      throw new InvalidMoneyError('O valor monetário excede a precisão de persistência');
     }
 
     return new Money(new Decimal(value), currency);
@@ -97,13 +97,13 @@ export class Money {
   private static assertValidInputAmount(amount: string): void {
     if (!DECIMAL_AMOUNT_PATTERN.test(amount)) {
       throw new InvalidMoneyError(
-        'Amount must be a non-negative decimal string with exactly two places',
+        'O valor deve ser um texto decimal não negativo com exatamente duas casas',
       );
     }
 
     const decimalPosition = amount.indexOf('.');
     if (decimalPosition > MAX_INTEGER_DIGITS) {
-      throw new InvalidMoneyError('Money amount exceeds persistence precision');
+      throw new InvalidMoneyError('O valor monetário excede a precisão de persistência');
     }
   }
 
@@ -112,7 +112,7 @@ export class Money {
       !CURRENCY_PATTERN.test(currency) ||
       !SUPPORTED_CURRENCIES.has(currency)
     ) {
-      throw new InvalidMoneyError(`Unsupported ISO-4217 currency: ${currency}`);
+      throw new InvalidMoneyError(`Moeda ISO-4217 não suportada: ${currency}`);
     }
   }
 

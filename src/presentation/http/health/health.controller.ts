@@ -39,7 +39,7 @@ export class HealthController {
     } catch {
       throw new ServiceUnavailableException({
         status: 'error',
-        message: 'A required dependency is unavailable',
+        message: 'Uma dependência obrigatória está indisponível',
       });
     }
   }

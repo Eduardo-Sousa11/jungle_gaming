@@ -67,10 +67,10 @@ function parseEnvelope(body: string): WagerSqsEnvelope {
   try {
     value = JSON.parse(body);
   } catch {
-    throw new InvalidWagerSqsMessageError('SQS message body is not valid JSON');
+    throw new InvalidWagerSqsMessageError('O corpo da mensagem SQS não é um JSON válido');
   }
   if (!isRecord(value) || !isRecord(value['data'])) {
-    throw new InvalidWagerSqsMessageError('SQS message envelope is invalid');
+    throw new InvalidWagerSqsMessageError('O envelope da mensagem SQS é inválido');
   }
 
   const data = value['data'];
@@ -105,7 +105,7 @@ function parseEnvelope(body: string): WagerSqsEnvelope {
       validString(data['referenceExternalTransactionId'], 255));
 
   if (!requiredEnvelope || !requiredData) {
-    throw new InvalidWagerSqsMessageError('SQS message fields are invalid');
+    throw new InvalidWagerSqsMessageError('Os campos da mensagem SQS são inválidos');
   }
 
   return value as unknown as WagerSqsEnvelope;

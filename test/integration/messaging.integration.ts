@@ -115,7 +115,7 @@ describe('Mensageria distribuída com PostgreSQL e LocalStack', () => {
     delete process.env.WAGER_EVENTS_QUEUE_NAME;
   });
 
-  test('redelivery after commit replays through inbox without duplicating effects', async () => {
+  test('a reentrega após o commit reproduz pela inbox sem duplicar efeitos', async () => {
     const wallet = await openWallet('100.00');
     const messageId = randomUUID();
     const body = wagerMessage(wallet, { messageId });
@@ -177,7 +177,7 @@ describe('Mensageria distribuída com PostgreSQL e LocalStack', () => {
     expect(storedWallet.balance).toBe('75.00');
   });
 
-  test('rolls back inbox when financial processing cannot commit', async () => {
+  test('reverte a inbox quando o processamento financeiro não consegue confirmar', async () => {
     const messageId = randomUUID();
     const body = wagerMessage(
       { walletId: randomUUID(), playerId: randomUUID() },
@@ -194,7 +194,7 @@ describe('Mensageria distribuída com PostgreSQL e LocalStack', () => {
     ).toBe(0);
   });
 
-  test('rejects a divergent payload for the same inbox identity', async () => {
+  test('rejeita um payload divergente para a mesma identidade da inbox', async () => {
     const wallet = await openWallet('100.00');
     const messageId = randomUUID();
     await handler.handle(wagerMessage(wallet, { messageId }));
@@ -206,7 +206,7 @@ describe('Mensageria distribuída com PostgreSQL e LocalStack', () => {
     ).rejects.toBeInstanceOf(InboxPayloadConflictError);
   });
 
-  test('two publishers claim outbox rows concurrently and recover an expired lease', async () => {
+  test('dois publicadores reservam registros da outbox concorrentemente e recuperam uma concessão expirada', async () => {
     const wallet = await openWallet('10.00');
     const repositoryA = new MikroOrmOutboxRepository(orm.em.fork());
     const repositoryB = new MikroOrmOutboxRepository(orm.em.fork());
@@ -266,7 +266,7 @@ describe('Mensageria distribuída com PostgreSQL e LocalStack', () => {
     expect(event.Messages?.length).toBe(1);
   });
 
-  test('resolves an out-of-order refund and expires a missing reference', async () => {
+  test('resolve um reembolso fora de ordem e expira uma referência ausente', async () => {
     const wallet = await openWallet('100.00');
     const referenceExternalId = randomUUID();
     const roundId = randomUUID();
@@ -337,7 +337,7 @@ describe('Mensageria distribuída com PostgreSQL e LocalStack', () => {
     );
   });
 
-  test('invalid messages reach the configured DLQ after retry exhaustion', async () => {
+  test('mensagens inválidas chegam à DLQ configurada após esgotar as tentativas', async () => {
     await sqs.send(
       new SetQueueAttributesCommand({
         QueueUrl: queueUrl,

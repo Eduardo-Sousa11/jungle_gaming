@@ -18,7 +18,7 @@ function canonicalJson(value: unknown): string {
 
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) {
-      throw new TypeError('Canonical JSON does not support non-finite numbers');
+      throw new TypeError('O JSON canônico não aceita números não finitos');
     }
     return JSON.stringify(value);
   }
@@ -39,5 +39,5 @@ function canonicalJson(value: unknown): string {
     return `{${serializedEntries.join(',')}}`;
   }
 
-  throw new TypeError(`Canonical JSON does not support ${typeof value}`);
+  throw new TypeError(`O JSON canônico não aceita o tipo ${typeof value}`);
 }

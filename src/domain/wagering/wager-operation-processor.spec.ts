@@ -38,8 +38,8 @@ const BASE_TRANSACTION_PROPS: CreateWagerTransactionProps = {
   at: CREATED_AT,
 };
 
-describe('WagerOperationProcessor operation matrix', () => {
-  test('processes BET as a debit with one ledger entry', () => {
+describe('Matriz de operações de WagerOperationProcessor', () => {
+  test('processa BET como débito com um lançamento no ledger', () => {
     const wallet = openWallet('100.00');
     const transaction = createTransaction(WagerTransactionKind.Bet);
 
@@ -54,7 +54,7 @@ describe('WagerOperationProcessor operation matrix', () => {
     expect(result.ledgerEntry?.balanceAfter.toJSON().amount).toBe('75.00');
   });
 
-  test('rejects BET with insufficient funds without changing balance or ledger', () => {
+  test('rejeita BET com saldo insuficiente sem alterar saldo ou ledger', () => {
     const wallet = openWallet('20.00');
     const transaction = createTransaction(WagerTransactionKind.Bet);
 
@@ -69,7 +69,7 @@ describe('WagerOperationProcessor operation matrix', () => {
     expect(result.ledgerEntry).toBeUndefined();
   });
 
-  test('processes WIN as a credit', () => {
+  test('processa WIN como crédito', () => {
     const wallet = openWallet('100.00');
     const transaction = createTransaction(WagerTransactionKind.Win);
 
@@ -81,7 +81,7 @@ describe('WagerOperationProcessor operation matrix', () => {
     expect(result.ledgerEntry?.direction).toBe(WalletMovementDirection.Credit);
   });
 
-  test('processes a WIN referencing a BET without requiring equal amounts', () => {
+  test('processa WIN referenciando BET sem exigir valores iguais', () => {
     const wallet = openWallet('100.00');
     const bet = processedReference(WagerTransactionKind.Bet, {
       money: Money.from({ amount: '10.00', currency: 'BRL' }),
@@ -97,7 +97,7 @@ describe('WagerOperationProcessor operation matrix', () => {
     expect(wallet.balance.toJSON().amount).toBe('125.00');
   });
 
-  test('processes LOSS without changing wallet or creating ledger', () => {
+  test('processa LOSS sem alterar a carteira ou criar lançamento no ledger', () => {
     const wallet = openWallet('100.00');
     const transaction = createTransaction(WagerTransactionKind.Loss);
 
@@ -109,7 +109,7 @@ describe('WagerOperationProcessor operation matrix', () => {
     expect(result.ledgerEntry).toBeUndefined();
   });
 
-  test('processes REFUND of a processed BET as a credit', () => {
+  test('processa REFUND de uma BET processada como crédito', () => {
     const wallet = openWallet('75.00');
     const bet = processedReference(WagerTransactionKind.Bet);
     const refund = createReversal(WagerTransactionKind.Refund, bet);
@@ -132,7 +132,7 @@ describe('WagerOperationProcessor operation matrix', () => {
       WalletMovementDirection.Debit,
     ],
   ])(
-    'processes ROLLBACK of %s with the inverse financial effect',
+    'processa ROLLBACK de %s com o efeito financeiro inverso',
     (referenceKind, initialBalance, expectedBalance, expectedDirection) => {
       const wallet = openWallet(initialBalance);
       const reference = processedReference(referenceKind);
@@ -147,7 +147,7 @@ describe('WagerOperationProcessor operation matrix', () => {
     },
   );
 
-  test('rejects a debit ROLLBACK that would make the wallet negative', () => {
+  test('rejeita ROLLBACK de débito que tornaria a carteira negativa', () => {
     const wallet = openWallet('10.00');
     const win = processedReference(WagerTransactionKind.Win);
     const rollback = createReversal(WagerTransactionKind.Rollback, win);
@@ -164,9 +164,9 @@ describe('WagerOperationProcessor operation matrix', () => {
   });
 });
 
-describe('WagerOperationProcessor references and rejections', () => {
+describe('Referências e rejeições de WagerOperationProcessor', () => {
   test.each([WagerTransactionKind.Win, WagerTransactionKind.Refund, WagerTransactionKind.Rollback])(
-    'moves %s with a missing declared reference to PENDING_REFERENCE',
+    'move %s com referência declarada ausente para PENDING_REFERENCE',
     (kind) => {
       const wallet = openWallet('100.00');
       const transaction = createTransaction(kind, {
@@ -183,7 +183,7 @@ describe('WagerOperationProcessor references and rejections', () => {
     },
   );
 
-  test('processes a PENDING_REFERENCE transaction when the reference arrives', () => {
+  test('processa uma transação PENDING_REFERENCE quando a referência chega', () => {
     const wallet = openWallet('75.00');
     const bet = processedReference(WagerTransactionKind.Bet);
     const refund = createReversal(WagerTransactionKind.Refund, bet);
@@ -197,7 +197,7 @@ describe('WagerOperationProcessor references and rejections', () => {
     expect(processedResult.ledgerEntry).toBeDefined();
   });
 
-  test('rejects a repeated reversal of the same kind without financial effect', () => {
+  test('rejeita uma reversão repetida do mesmo tipo sem efeito financeiro', () => {
     const wallet = openWallet('75.00');
     const bet = processedReference(WagerTransactionKind.Bet);
     const refund = createReversal(WagerTransactionKind.Refund, bet);
@@ -217,17 +217,17 @@ describe('WagerOperationProcessor references and rejections', () => {
   });
 
   test.each([
-    ['provider', { providerId: 'provider-b' }, WagerTransactionFailureCode.ProviderMismatch],
-    ['player', { playerId: 'player-2' }, WagerTransactionFailureCode.PlayerMismatch],
-    ['wallet', { walletId: 'wallet-2' }, WagerTransactionFailureCode.WalletMismatch],
-    ['round', { roundId: 'round-2' }, WagerTransactionFailureCode.RoundMismatch],
+    ['provedor', { providerId: 'provider-b' }, WagerTransactionFailureCode.ProviderMismatch],
+    ['jogador', { playerId: 'player-2' }, WagerTransactionFailureCode.PlayerMismatch],
+    ['carteira', { walletId: 'wallet-2' }, WagerTransactionFailureCode.WalletMismatch],
+    ['rodada', { roundId: 'round-2' }, WagerTransactionFailureCode.RoundMismatch],
     [
-      'currency',
+      'moeda',
       { money: Money.from({ amount: '25.00', currency: 'USD' }) },
       WagerTransactionFailureCode.CurrencyMismatch,
     ],
   ])(
-    'rejects a reference from another %s with a stable failure code',
+    'rejeita uma referência de outro(a) %s com código de falha estável',
     (_field, referenceOverrides, expectedFailureCode) => {
       const wallet = openWallet('75.00');
       const bet = processedReference(WagerTransactionKind.Bet, referenceOverrides);
@@ -244,7 +244,7 @@ describe('WagerOperationProcessor references and rejections', () => {
     },
   );
 
-  test('rejects a partial reversal with a stable failure code', () => {
+  test('rejeita uma reversão parcial com um código de falha estável', () => {
     const wallet = openWallet('75.00');
     const bet = processedReference(WagerTransactionKind.Bet, {
       money: Money.from({ amount: '50.00', currency: 'BRL' }),
@@ -262,7 +262,7 @@ describe('WagerOperationProcessor references and rejections', () => {
     expect(wallet.balance.toJSON().amount).toBe('75.00');
   });
 
-  test('rejects a reference that is not processed', () => {
+  test('rejeita uma referência que não está processada', () => {
     const wallet = openWallet('75.00');
     const pendingBet = createTransaction(WagerTransactionKind.Bet, {
       id: 'reference-id',
@@ -278,7 +278,7 @@ describe('WagerOperationProcessor references and rejections', () => {
     );
   });
 
-  test('rejects a reference of a kind not allowed by the operation', () => {
+  test('rejeita uma referência de tipo não permitido pela operação', () => {
     const wallet = openWallet('75.00');
     const win = processedReference(WagerTransactionKind.Win);
     const refund = createReversal(WagerTransactionKind.Refund, win);
@@ -291,7 +291,7 @@ describe('WagerOperationProcessor references and rejections', () => {
     );
   });
 
-  test('rejects an unexpected reference on an operation that did not declare one', () => {
+  test('rejeita uma referência inesperada em uma operação que não a declarou', () => {
     const wallet = openWallet('100.00');
     const bet = createTransaction(WagerTransactionKind.Bet);
     const unexpectedReference = processedReference(WagerTransactionKind.Bet);
@@ -304,25 +304,25 @@ describe('WagerOperationProcessor references and rejections', () => {
   });
 });
 
-describe('WagerOperationProcessor wallet context and safety', () => {
+describe('Contexto da carteira e segurança de WagerOperationProcessor', () => {
   test.each([
     [
-      'wallet',
+      'carteira',
       { id: 'wallet-2' },
       WagerTransactionFailureCode.WalletMismatch,
     ],
     [
-      'player',
+      'jogador',
       { playerId: 'player-2' },
       WagerTransactionFailureCode.PlayerMismatch,
     ],
     [
-      'currency',
+      'moeda',
       { currency: 'USD' },
       WagerTransactionFailureCode.CurrencyMismatch,
     ],
   ])(
-    'rejects a transaction for a different %s',
+    'rejeita uma transação para um(a) %s diferente',
     (_field, walletOverrides, expectedFailureCode) => {
       const wallet = openWallet('100.00', walletOverrides);
       const bet = createTransaction(WagerTransactionKind.Bet);
@@ -337,7 +337,7 @@ describe('WagerOperationProcessor wallet context and safety', () => {
     },
   );
 
-  test('prevents reprocessing a terminal transaction before changing wallet', () => {
+  test('impede reprocessar uma transação terminal antes de alterar a carteira', () => {
     const wallet = openWallet('100.00');
     const bet = createTransaction(WagerTransactionKind.Bet);
     bet.markProcessed(undefined, PROCESSED_AT);
@@ -347,7 +347,7 @@ describe('WagerOperationProcessor wallet context and safety', () => {
     expect(wallet.version).toBe(1);
   });
 
-  test('does not accept OPENING in the wagering operation processor', () => {
+  test('não aceita OPENING no processador de operações de aposta', () => {
     const wallet = openWallet('100.00');
     const opening = WagerTransaction.createOpening({
       id: 'opening-1',
@@ -363,7 +363,7 @@ describe('WagerOperationProcessor wallet context and safety', () => {
     );
   });
 
-  test('requires a ledger identifier before changing a financial operation', () => {
+  test('exige um identificador do ledger antes de alterar uma operação financeira', () => {
     const wallet = openWallet('100.00');
     const bet = createTransaction(WagerTransactionKind.Bet);
 

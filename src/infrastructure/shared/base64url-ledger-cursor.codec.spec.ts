@@ -10,7 +10,7 @@ const payload = {
 };
 
 describe('Base64UrlLedgerCursorCodec', () => {
-  test('round-trips a versioned cursor without exposing raw JSON', () => {
+  test('codifica e decodifica um cursor versionado sem expor o JSON original', () => {
     const codec = new Base64UrlLedgerCursorCodec();
 
     const cursor = codec.encode(payload);
@@ -41,7 +41,7 @@ describe('Base64UrlLedgerCursorCodec', () => {
         i: payload.entryId,
       }),
     ).toString('base64url'),
-  ])('rejects a malformed or unsupported cursor: %s', (cursor) => {
+  ])('rejeita um cursor malformado ou não suportado: %s', (cursor) => {
     const codec = new Base64UrlLedgerCursorCodec();
 
     expect(() => codec.decode(cursor)).toThrow(InvalidLedgerCursorError);

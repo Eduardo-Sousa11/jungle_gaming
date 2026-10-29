@@ -12,7 +12,7 @@ function databasePort(): number {
   const port = Number.parseInt(rawPort, 10);
 
   if (!Number.isSafeInteger(port) || port <= 0) {
-    throw new Error(`Invalid DATABASE_PORT: ${rawPort}`);
+    throw new Error(`DATABASE_PORT inválida: ${rawPort}`);
   }
 
   return port;

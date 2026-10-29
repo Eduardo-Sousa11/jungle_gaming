@@ -59,7 +59,7 @@ export function createWagerIntegrationEvents(input: {
     case WagerTransactionStatus.Rejected: {
       const failureCode = input.transaction.failureCode;
       if (failureCode === undefined) {
-        throw new Error('A rejected transaction must have a failure code');
+        throw new Error('Uma transação rejeitada deve possuir um código de falha');
       }
       events.push(
         WagerTransactionRejected.create({
@@ -86,7 +86,7 @@ export function createWagerIntegrationEvents(input: {
       const referenceExternalTransactionId =
         input.transaction.referenceExternalTransactionId;
       if (referenceExternalTransactionId === undefined) {
-        throw new Error('A pending transaction must declare its reference');
+        throw new Error('Uma transação pendente deve declarar sua referência');
       }
       events.push(
         WagerTransactionPendingReference.create({

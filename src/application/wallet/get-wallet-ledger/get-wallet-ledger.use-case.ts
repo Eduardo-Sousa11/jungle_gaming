@@ -46,7 +46,7 @@ export class GetWalletLedgerUseCase {
       decodedCursor.walletId !== input.walletId
     ) {
       throw new InvalidLedgerCursorError(
-        'The ledger cursor belongs to another wallet',
+        'O cursor do ledger pertence a outra carteira',
       );
     }
 
