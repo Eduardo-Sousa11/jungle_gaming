@@ -14,7 +14,9 @@ import {
   Res,
   ServiceUnavailableException,
   UnprocessableEntityException,
+  Logger,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 
 import {
   WagerExternalTransactionConflictError,
@@ -36,16 +38,21 @@ import { InvalidMoneyError } from '../../../domain/shared/money/money.errors';
 import { InvalidWagerTransactionError } from '../../../domain/wagering/wager-transaction.errors';
 import { WagerTransactionStatus } from '../../../domain/wagering/wager-transaction';
 import { ProcessWagerTransactionDto } from './process-wager-transaction.dto';
+import { MetricsRegistry } from '../../../infrastructure/observability/metrics.registry';
 
 interface MutableHttpResponse {
   status(statusCode: number): unknown;
+  header(name: string, value: string): unknown;
 }
 
 @Controller('wagering')
 export class WageringController {
+  private readonly logger = new Logger(WageringController.name);
+
   constructor(
     private readonly processWagerTransaction: ProcessWagerTransactionUseCase,
     private readonly getById: GetWagerTransactionByIdUseCase,
+    private readonly metrics: MetricsRegistry,
   ) {}
 
   @Post('transactions')
@@ -53,6 +60,7 @@ export class WageringController {
   async process(
     @Body() body: ProcessWagerTransactionDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('x-correlation-id') requestedCorrelationId: string | undefined,
     @Res({ passthrough: true }) response: MutableHttpResponse,
   ): Promise<ProcessWagerTransactionOutput> {
     if (idempotencyKey === undefined || idempotencyKey.trim().length === 0) {
@@ -69,26 +77,61 @@ export class WageringController {
       });
     }
 
+    const correlationId =
+      requestedCorrelationId === undefined ||
+      requestedCorrelationId.trim().length === 0 ||
+      requestedCorrelationId.length > 255
+        ? randomUUID()
+        : requestedCorrelationId;
+    response.header('x-correlation-id', correlationId);
+    const startedAt = performance.now();
     try {
-      const output = await this.processWagerTransaction.execute({
-        providerId: body.providerId,
-        externalTransactionId: body.externalTransactionId,
-        idempotencyKey,
-        walletId: body.walletId,
-        playerId: body.playerId,
-        roundId: body.roundId,
-        gameId: body.gameId,
-        kind: body.kind,
-        money: {
-          amount: body.money.amount,
-          currency: body.money.currency,
+      const output = await this.processWagerTransaction.execute(
+        {
+          providerId: body.providerId,
+          externalTransactionId: body.externalTransactionId,
+          idempotencyKey,
+          walletId: body.walletId,
+          playerId: body.playerId,
+          roundId: body.roundId,
+          gameId: body.gameId,
+          kind: body.kind,
+          money: {
+            amount: body.money.amount,
+            currency: body.money.currency,
+          },
+          referenceExternalTransactionId:
+            body.referenceExternalTransactionId,
         },
-        referenceExternalTransactionId:
-          body.referenceExternalTransactionId,
+        { correlationId },
+      );
+      this.metrics.increment('wager_transactions_total', {
+        source: 'http',
+        status: output.status,
+      });
+      if (output.idempotentReplay) {
+        this.metrics.increment('wager_duplicates_total', { source: 'http' });
+      }
+      this.metrics.observe(
+        'wager_processing_duration_seconds',
+        (performance.now() - startedAt) / 1_000,
+        { source: 'http' },
+      );
+      this.logger.log({
+        event: 'http_wager_processed',
+        correlationId,
+        transactionId: output.transactionId,
+        walletId: body.walletId,
+        providerId: body.providerId,
+        status: output.status,
+        idempotentReplay: output.idempotentReplay,
       });
       response.status(this.httpStatusFor(output.status));
       return output;
     } catch (error) {
+      if (error instanceof WagerPersistenceRaceError) {
+        this.metrics.increment('wager_lock_conflicts_total');
+      }
       this.rethrowAsHttpException(error);
     }
   }

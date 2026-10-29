@@ -4,10 +4,11 @@ import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
 import { createApplicationValidationPipe } from './presentation/http/shared/application-validation.pipe';
+import { JsonLogger } from './infrastructure/observability/json.logger';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, {
-    bufferLogs: true,
+    logger: new JsonLogger(),
   });
 
   app.enableShutdownHooks();

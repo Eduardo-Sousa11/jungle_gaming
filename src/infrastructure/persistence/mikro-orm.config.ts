@@ -4,6 +4,8 @@ import { defineConfig } from '@mikro-orm/postgresql';
 import { WalletLedgerEntryRecord } from './entities/wallet-ledger-entry.record';
 import { WalletRecord } from './entities/wallet.record';
 import { WagerTransactionRecord } from './entities/wager-transaction.record';
+import { InboxMessageRecord } from './entities/inbox-message.record';
+import { OutboxMessageRecord } from './entities/outbox-message.record';
 
 function databasePort(): number {
   const rawPort = process.env.DATABASE_PORT ?? '5432';
@@ -21,7 +23,13 @@ export default defineConfig({
   discovery: {
     warnWhenNoEntities: false,
   },
-  entities: [WalletRecord, WagerTransactionRecord, WalletLedgerEntryRecord],
+  entities: [
+    WalletRecord,
+    WagerTransactionRecord,
+    WalletLedgerEntryRecord,
+    InboxMessageRecord,
+    OutboxMessageRecord,
+  ],
   extensions: [Migrator],
   host: process.env.DATABASE_HOST ?? 'localhost',
   migrations: {

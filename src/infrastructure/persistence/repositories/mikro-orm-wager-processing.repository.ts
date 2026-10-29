@@ -13,6 +13,7 @@ import {
   WagerTransactionStatus,
 } from '../../../domain/wagering/wager-transaction';
 import { Wallet } from '../../../domain/wallet/wallet';
+import { InboxMessage } from '../../../domain/messaging/inbox-message';
 import { WagerPersistenceRaceError } from '../../../application/wagering/process-wager-transaction/process-wager-transaction.errors';
 import type {
   SaveWagerProcessingResult,
@@ -24,11 +25,14 @@ import type {
 import { WalletLedgerEntryRecord } from '../entities/wallet-ledger-entry.record';
 import { WalletRecord } from '../entities/wallet.record';
 import { WagerTransactionRecord } from '../entities/wager-transaction.record';
+import { InboxMessageRecord } from '../entities/inbox-message.record';
+import { OutboxMessageRecord } from '../entities/outbox-message.record';
 
 const PERSISTENCE_RACE_CONSTRAINTS = [
   'wager_transactions_provider_idempotency_unique',
   'wager_transactions_provider_external_unique',
   'wager_transactions_processed_reversal_unique',
+  'inbox_messages_pkey',
 ] as const;
 
 @Injectable()
@@ -61,8 +65,49 @@ export class MikroOrmWagerProcessingRepository
 
 class MikroOrmWagerProcessingSession implements WagerProcessingSession {
   private readonly lockedWalletRecords = new Map<string, WalletRecord>();
+  private readonly inboxRecords = new Map<string, InboxMessageRecord>();
 
   constructor(private readonly entityManager: EntityManager) {}
+
+  async findInboxMessage(
+    consumerName: string,
+    messageId: string,
+  ): Promise<InboxMessage | undefined> {
+    const record = await this.entityManager.findOne(InboxMessageRecord, {
+      consumerName,
+      messageId,
+    });
+    if (record === null) {
+      return undefined;
+    }
+    this.inboxRecords.set(`${consumerName}\0${messageId}`, record);
+    return InboxMessage.rehydrate({
+      consumerName: record.consumerName,
+      messageId: record.messageId,
+      payloadHash: record.payloadHash,
+      receivedAt: record.receivedAt,
+      processedAt: record.processedAt ?? undefined,
+    });
+  }
+
+  async saveInboxMessage(message: InboxMessage): Promise<void> {
+    const key = `${message.consumerName}\0${message.messageId}`;
+    let record = this.inboxRecords.get(key);
+    if (record === undefined) {
+      record = this.entityManager.create(InboxMessageRecord, {
+        consumerName: message.consumerName,
+        messageId: message.messageId,
+        payloadHash: message.payloadHash,
+        receivedAt: message.receivedAt,
+        processedAt: message.processedAt ?? null,
+      });
+      this.inboxRecords.set(key, record);
+      this.entityManager.persist(record);
+    } else {
+      record.processedAt = message.processedAt ?? null;
+    }
+    await this.entityManager.flush();
+  }
 
   async findByIdempotencyKey(
     providerId: string,
@@ -165,34 +210,55 @@ class MikroOrmWagerProcessingSession implements WagerProcessingSession {
     });
 
     this.entityManager.persist(transactionRecord);
+    // As FKs são mapeadas como IDs escalares; o flush explícito preserva a ordem.
     await this.entityManager.flush();
 
-    if (result.ledgerEntry === undefined) {
-      return;
+    if (result.ledgerEntry !== undefined) {
+      const walletRecord = this.lockedWalletRecords.get(result.wallet.id);
+      if (walletRecord === undefined) {
+        throw new Error(
+          'Cannot persist a wallet that was not locked in this session',
+        );
+      }
+
+      walletRecord.balance = result.wallet.balance.toJSON().amount;
+      walletRecord.version = result.wallet.version;
+      walletRecord.updatedAt = result.wallet.updatedAt;
+
+      const ledgerEntry = result.ledgerEntry;
+      const ledgerRecord = this.entityManager.create(WalletLedgerEntryRecord, {
+        id: ledgerEntry.id,
+        walletId: ledgerEntry.walletId,
+        transactionId: ledgerEntry.transactionId,
+        direction: ledgerEntry.direction,
+        amount: ledgerEntry.money.toJSON().amount,
+        currency: ledgerEntry.money.currency,
+        balanceBefore: ledgerEntry.balanceBefore.toJSON().amount,
+        balanceAfter: ledgerEntry.balanceAfter.toJSON().amount,
+        createdAt: ledgerEntry.createdAt,
+      });
+      this.entityManager.persist(ledgerRecord);
     }
 
-    const walletRecord = this.lockedWalletRecords.get(result.wallet.id);
-    if (walletRecord === undefined) {
-      throw new Error('Cannot persist a wallet that was not locked in this session');
+    for (const event of result.events) {
+      const payload = event.toJSON();
+      this.entityManager.persist(
+        this.entityManager.create(OutboxMessageRecord, {
+          id: event.eventId,
+          aggregateId: event.aggregateId,
+          eventType: event.eventType,
+          eventVersion: event.version,
+          payload: { ...payload },
+          occurredAt: event.occurredAt,
+          attempts: 0,
+          nextAttemptAt: event.occurredAt,
+          publishedAt: null,
+          lockedAt: null,
+          lockedBy: null,
+          lastErrorCode: null,
+        }),
+      );
     }
-
-    walletRecord.balance = result.wallet.balance.toJSON().amount;
-    walletRecord.version = result.wallet.version;
-    walletRecord.updatedAt = result.wallet.updatedAt;
-
-    const ledgerEntry = result.ledgerEntry;
-    const ledgerRecord = this.entityManager.create(WalletLedgerEntryRecord, {
-      id: ledgerEntry.id,
-      walletId: ledgerEntry.walletId,
-      transactionId: ledgerEntry.transactionId,
-      direction: ledgerEntry.direction,
-      amount: ledgerEntry.money.toJSON().amount,
-      currency: ledgerEntry.money.currency,
-      balanceBefore: ledgerEntry.balanceBefore.toJSON().amount,
-      balanceAfter: ledgerEntry.balanceAfter.toJSON().amount,
-      createdAt: ledgerEntry.createdAt,
-    });
-    this.entityManager.persist(ledgerRecord);
     await this.entityManager.flush();
   }
 

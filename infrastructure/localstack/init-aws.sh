@@ -20,3 +20,7 @@ QUEUE_ATTRIBUTES="$(printf \
 awslocal sqs create-queue \
   --queue-name "${WAGER_QUEUE_NAME:-wager-transactions.fifo}" \
   --attributes "$QUEUE_ATTRIBUTES"
+
+awslocal sqs create-queue \
+  --queue-name "${WAGER_EVENTS_QUEUE_NAME:-wager-events.fifo}" \
+  --attributes FifoQueue=true,ContentBasedDeduplication=false

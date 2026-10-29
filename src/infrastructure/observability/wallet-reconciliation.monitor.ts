@@ -4,6 +4,7 @@ import type {
   WalletReconciliationDivergence,
   WalletReconciliationMonitor,
 } from '../../application/wallet/reconcile-wallet/wallet-reconciliation.monitor';
+import { MetricsRegistry } from './metrics.registry';
 
 @Injectable()
 export class NestWalletReconciliationMonitor
@@ -12,8 +13,11 @@ export class NestWalletReconciliationMonitor
   private readonly logger = new Logger(NestWalletReconciliationMonitor.name);
   private divergenceTotal = 0;
 
+  constructor(private readonly metrics: MetricsRegistry) {}
+
   recordDivergence(divergence: WalletReconciliationDivergence): void {
     this.divergenceTotal += 1;
+    this.metrics.increment('reconciliation_divergences_total');
     this.logger.warn({
       event: 'wallet_reconciliation_divergence',
       walletId: divergence.walletId,
